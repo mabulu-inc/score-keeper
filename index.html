@@ -115,6 +115,10 @@
     width: 100%; -webkit-user-select: text; user-select: text;
   }
   input[type=text]:focus { outline: none; border-color: var(--accent); }
+  .nameRow { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .nameRow input { flex: 1; }
+  .fixname { display: block; width: 100%; background: none; border: none; color: var(--muted);
+             font-size: 12px; padding: 0 0 12px; margin-top: -6px; }
 
   /* --- scoreboard --- */
   .board { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -242,9 +246,15 @@ const save = () => { try { localStorage.setItem(LS, JSON.stringify(S)); } catch 
 
 // Screen-local flags, deliberately not persisted.
 let editRoster = false;
+let editNames  = false;
 let confirmEnd = false;
 
 const nameOf = id => (S.roster.find(p => p.id === id) || {}).name || '?';
+
+// Forgetting a player hides them from the pickers but keeps the entry, so every
+// seat id still resolves to a name. Correcting a spelling therefore fixes every
+// screen at once — including games already finished — with nothing to sync.
+const active = () => S.roster.filter(p => !p.hidden);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const fmt = n => (n < 0 ? '\u2212' : '') + Math.abs(n);          // U+2212, not a hyphen
@@ -325,6 +335,7 @@ const ACT = {
     if (!name) return;
     let p = S.roster.find(p => p.name.toLowerCase() === name.toLowerCase());
     if (!p) { p = { id: uid('p'), name }; S.roster.unshift(p); }
+    delete p.hidden;                        // adding a forgotten name brings them back
     el.value = '';
     seatPlayer(p.id);
     done(true);
@@ -353,7 +364,13 @@ const ACT = {
   unseat(d) { S.setup.seats[+d.i] = null; S.setup.sel = null; done(); },
   first(d)  { S.setup.first = +d.i; done(); },
   editRoster() { editRoster = !editRoster; done(); },
-  delPlayer(d) { S.roster = S.roster.filter(p => p.id !== d.id); done(); },
+  delPlayer(d) {
+    const p = S.roster.find(p => p.id === d.id);
+    if (p) p.hidden = true;
+    if (S.setup) S.setup.seats = S.setup.seats.map(id => id === d.id ? null : id);
+    done();
+  },
+  editNames() { editNames = !editNames; done(); },
   cancelSetup() { S.setup = null; editRoster = false; done(); },
 
   start() {
@@ -430,7 +447,7 @@ const ACT = {
   },
 
   /* ---- getting around ---- */
-  home()      { S.game = null; S.undo = []; confirmEnd = false; done(); },
+  home()      { S.game = null; S.undo = []; confirmEnd = false; editNames = false; done(); },
   askEnd()    { confirmEnd = true; done(); },
   keepGoing() { confirmEnd = false; done(); },
 
@@ -440,7 +457,7 @@ const ACT = {
     // Same seats, and the deal moves on one place from where it finished.
     const last = dealerFor(g, Math.max(0, g.hands.length - 1));
     S.setup = { seats: g.seats.slice(), first: (last + 1) % 4, sel: null };
-    S.game = null; S.undo = []; confirmEnd = false;
+    S.game = null; S.undo = []; confirmEnd = false; editNames = false;
     done();
   },
 
@@ -484,6 +501,17 @@ function tableHTML(seats, opt) {
 }
 
 const tag = (text, live) => ({ text, live: !!live });
+
+// Editing a name is just editing the field that holds it. No rename mode, no
+// dialog, and nothing to press to make it stick.
+function nameEditor(ids, canDelete) {
+  return ids.map(id =>
+    '<div class="nameRow">' +
+      '<input type="text" class="nm-in" data-id="' + id + '" value="' + esc(nameOf(id)) + '" ' +
+             'autocomplete="off" autocapitalize="words" enterkeyhint="done">' +
+      (canDelete ? '<button class="ghost" data-act="delPlayer" data-id="' + id + '">✕</button>' : '') +
+    '</div>').join('');
+}
 
 // The middle of the table holds the contract: what has been bid, and in what.
 function midHTML(g) {
@@ -555,7 +583,7 @@ function viewSetup() {
 
   h += '<div class="card">' +
        '<div class="label" style="display:flex">Players' +
-         (S.roster.length ? '<span style="margin-left:auto"><button class="ghost" data-act="editRoster" ' +
+         (active().length ? '<span style="margin-left:auto"><button class="ghost" data-act="editRoster" ' +
             'style="font:inherit;letter-spacing:.1em;padding:0">' +
             (editRoster ? 'DONE' : 'EDIT') + '</button></span>' : '') +
        '</div>' +
@@ -565,17 +593,17 @@ function viewSetup() {
          '<button data-act="addPlayer" style="flex:1">Add</button>' +
        '</div>';
 
-  if (S.roster.length) {
+  if (active().length && editRoster) {
+    h += nameEditor(active().slice(0, 30).map(p => p.id), true) +
+         '<div class="tiny muted">Correcting a spelling fixes it everywhere, including finished ' +
+         'games. ✕ forgets a player.</div>';
+  } else if (active().length) {
     h += '<div class="chips">';
-    for (const p of S.roster.slice(0, 30)) {
-      const seated = st.seats.includes(p.id);
-      h += editRoster
-        ? '<button class="warn" data-act="delPlayer" data-id="' + p.id + '">' + esc(p.name) + ' ✕</button>'
-        : '<button class="' + (seated ? 'on' : '') + '" data-act="toggleRoster" data-id="' + p.id + '">' +
-          esc(p.name) + '</button>';
+    for (const p of active().slice(0, 30)) {
+      h += '<button class="' + (st.seats.includes(p.id) ? 'on' : '') +
+           '" data-act="toggleRoster" data-id="' + p.id + '">' + esc(p.name) + '</button>';
     }
     h += '</div>';
-    if (editRoster) h += '<div class="tiny muted gap">Tap a name to forget it. Finished games keep their own record.</div>';
   }
   h += '</div>';
 
@@ -663,6 +691,13 @@ function viewHand(g) {
       return out;
     }
   });
+
+  h += editNames
+    ? '<div class="card"><div class="label" style="display:flex">Fix a name' +
+        '<span style="margin-left:auto"><button class="ghost" data-act="editNames" ' +
+        'style="font:inherit;letter-spacing:.1em;padding:0">DONE</button></span></div>' +
+        nameEditor(g.seats, false) + '</div>'
+    : '<button class="fixname" data-act="editNames">✎ Fix a name</button>';
 
   return h + { bid: panelBid, trump: panelTrump, tricks: panelTricks }[g.phase](g);
 }
@@ -780,6 +815,15 @@ root.addEventListener('click', e => {
   if (!el || el.disabled) return;
   const fn = ACT[el.dataset.act];
   if (fn) { e.stopPropagation(); fn(el.dataset); }
+});
+
+root.addEventListener('input', e => {
+  const el = e.target;
+  if (!el.classList || !el.classList.contains('nm-in')) return;
+  const name = el.value.trim();
+  if (!name) return;                       // blanking a field is not a rename
+  const p = S.roster.find(p => p.id === el.dataset.id);
+  if (p && p.name !== name) { p.name = name; save(); }
 });
 
 root.addEventListener('keydown', e => {

@@ -89,6 +89,15 @@ teams level on 40 or more, nobody has won: the app says so and deals the next ha
 Players are remembered as you use them; the ones you played with most recently sort to
 the front. Finished games are kept with their full hand-by-hand record.
 
+**Misspelled someone?** Tap **✎ Fix a name** under the table mid-game, or **Edit** in the
+players list when setting one up. The names are text fields — correct the spelling and it
+is right everywhere at once: the seats, the scoreboard, the hand log and every game
+already finished. There is nothing to press to save it.
+
+**✕ forgets a player**, taking them out of the pick list and out of any seat they were
+filling. Games they played in keep their name, so old scores never turn into question
+marks. Adding the same name again brings them back with their history attached.
+
 **Play again** on any previous game re-seats the same four players and moves the first
 deal on one place — so a rematch is two taps. Seats can still be swapped before you
 start, for when the partnerships change.

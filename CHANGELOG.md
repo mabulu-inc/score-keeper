@@ -28,8 +28,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   running total — replacing the scratchpad it was written on.
 - Undo that steps back through everything, including a mis-tapped trick count, a wrong
   trump, a bid recorded against the wrong player, and a game that has already finished.
-- Remembered players, sorted so the people you play with most often are first, with an
-  edit mode for clearing out typos.
+- Remembered players, sorted so the people you play with most often are first.
+- Names can be corrected wherever you notice the mistake: **✎ Fix a name** under the table
+  during a game, or **Edit** in the players list while setting one up. Names are shown as
+  plain text fields, so fixing a spelling is just typing it — no rename button, nothing to
+  save — and the correction reaches the seats, the scoreboard, the hand log and every game
+  already finished, because a player is stored once and referred to everywhere else.
+- Forgetting a player now also clears them out of any seat they were filling, and no longer
+  blanks out the games they played in — old scores keep the names they were won under
+  instead of turning into question marks. Adding the same name again brings that player
+  back with their history.
 - Saved games with their full record, and a **Play again** button that re-seats the same
   four players and moves the first deal on one place. Seats can be swapped before
   starting, for when the partnerships change.
