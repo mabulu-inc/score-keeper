@@ -36,5 +36,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Seating by tapping two players to swap them, with partners shown opposite each other
   so the teams are visible before the first card is dealt.
 - Any player can take the first deal; the deal then moves clockwise on its own.
+- The game is won by whichever team is ahead once 40 is reached, so a hand that carries
+  both teams past the post at the same time is settled on the higher score. A game level
+  on 40 or more is not over — the app says the scores are tied and deals on until one
+  team leads.
 - Works fully offline and installs to the home screen, so a table with no signal is not
   a problem. The game in progress survives closing the app.

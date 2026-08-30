@@ -404,11 +404,11 @@ const ACT = {
     });
 
     const s = totals(g);
-    if (s[0] >= RULES.target || s[1] >= RULES.target) {
+    // The game needs a leader, not just someone past the post: both teams can
+    // cross 40 on one hand, and a tie there is played on rather than split.
+    if (Math.max(s[0], s[1]) >= RULES.target && s[0] !== s[1]) {
       g.done = true;
-      // Both teams can cross the line on one hand; the team that made its bid takes it.
-      g.winner = (s[0] >= RULES.target && s[1] >= RULES.target) ? bt
-               : (s[0] >= RULES.target ? 0 : 1);
+      g.winner = s[0] > s[1] ? 0 : 1;
       g.phase = 'over';
       g.finished = new Date().toISOString();
       S.history.unshift(JSON.parse(JSON.stringify(g)));
@@ -635,8 +635,14 @@ function viewHand(g) {
   const dealer = dealerFor(g, n);
   const turn = g.bidding ? g.bidding.turn : (g.pending ? g.pending.bidder : null);
 
+  const s = totals(g);
   let h = '<div class="banner">Hand <b>' + (n + 1) + '</b> &nbsp;·&nbsp; <b>' +
-          esc(nameOf(g.seats[dealer])) + '</b> deals</div>';
+          esc(nameOf(g.seats[dealer])) + '</b> deals' +
+          // Say why the game did not just end, rather than leaving the table guessing.
+          (s[0] === s[1] && s[0] >= RULES.target
+            ? '<br>Tied on <b>' + s[0] + '</b> — play on until one team leads'
+            : '') +
+          '</div>';
 
   h += tableHTML(g.seats, {
     turn,

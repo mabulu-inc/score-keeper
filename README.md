@@ -80,7 +80,9 @@ Bids run 3 → 4 → 5 → partner's best → alone, and each must beat the last
 (no trump) need a bid of at least 4. Partner's best and alone are all or nothing —
 anything less than all six tricks loses the full value.
 
-If a hand pushes both teams past 40 at once, the team that made its bid takes the game.
+The game goes to whoever is **ahead** once someone reaches 40 — a hand can push both
+teams past the post at once, and the higher score takes it. If that leaves the two
+teams level on 40 or more, nobody has won: the app says so and deals the next hand.
 
 ## Between games
 
