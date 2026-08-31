@@ -187,6 +187,13 @@
   .team.t0 .bar i { background: var(--accent); }
   .team.t1 .bar i { background: var(--cool); }
 
+  /* The thing you came to a screen to do stays in reach however long the list
+     above it grows. It only holds itself to the bottom while it would
+     otherwise be out of sight; scroll far enough and it settles where it
+     belongs, so nothing below it is covered for good. */
+  .act { position: sticky; bottom: 0; z-index: 4; background: var(--bg);
+         padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); }
+
   .banner { text-align: center; font-size: 13px; color: var(--muted); margin: 14px 0 10px; }
   .banner b { color: var(--text); font-weight: 600; }
 
@@ -399,7 +406,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v26';                       // bump together with CACHE in sw.js
+const BUILD = 'v27';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -1052,7 +1059,7 @@ function viewSetup() {
          st.seats.map(s => esc(nameOf(s))).join(' → ') + '</div></div>';
   }
 
-  h += '<div class="row">' +
+  h += '<div class="row act">' +
        '<button data-act="cancelSetup" style="flex:1">Cancel</button>' +
        '<button class="primary" style="flex:2" data-act="start"' +
          (full && st.first !== null ? '' : ' disabled') + '>Start game</button></div>';
@@ -1252,7 +1259,7 @@ function viewSetup7() {
     '<div class="card center tiny muted" style="line-height:1.7">First to <b>' + FLIP7.target +
       '</b>. At the end of each hand you tap the cards a player is holding and the score does ' +
       'itself — seven different numbers is <b>+' + FLIP7.bonus + '</b>.</div>' +
-    '<div class="row">' +
+    '<div class="row act">' +
       '<button data-act="cancelSetup" style="flex:1">Cancel</button>' +
       '<button class="primary" style="flex:2" data-act="start"' +
         (n >= FLIP7.min ? '' : ' disabled') + '>Start game</button></div>';
@@ -1333,9 +1340,9 @@ function viewHand7(g, s) {
   h += '</div>';
 
   // The button carries the count, so nobody has to hunt for who was missed.
-  return h + '<button class="primary" style="width:100%" data-act="scoreHand"' +
+  return h + '<div class="act"><button class="primary" style="width:100%" data-act="scoreHand"' +
              (left ? ' disabled' : '') + '>' +
-             (left ? left + ' still to tally' : 'Score the hand') + '</button>';
+             (left ? left + ' still to tally' : 'Score the hand') + '</button></div>';
 }
 
 /* Who is sitting where, and who is still coming and going. The order is a

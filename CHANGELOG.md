@@ -162,6 +162,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Start game** and **Score the hand** stay in reach however long the list above them
+  gets. A Flip 7 table of eight put both of them off the bottom of the screen, which leaves
+  you on a screen with apparently no way forward. They hold to the bottom only while they
+  would otherwise be out of sight; scroll to the end and they settle where they belong, so
+  nothing below them is covered for good.
+
 - The Rules row in the menu says *both games*, rather than naming whichever game the card
   would open on — which read as though that were the only game with rules written up.
   Every menu row now describes what is inside it, the way *5 remembered* and *4 finished*
