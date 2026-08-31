@@ -204,6 +204,11 @@ and **✕ Close** do the same thing — the menu has one exit, not two.
 Backing out of a game is the same as *Leave this game for now* — it keeps its place, it
 does not end it.
 
+Every layer you can be inside has a history entry behind it, pushed during the tap that
+opened it. Nothing is pushed from inside the `popstate` handler: an installed app does not
+honour that, and depending on it meant the first Back press worked and the second closed
+the app outright.
+
 Only at home, with nothing left above it, does back mean leave, and it asks first. The
 answer is another press: a web page cannot close itself, so going is the browser's to do
 and the app does not pretend otherwise. Nothing is lost either way — everything is saved

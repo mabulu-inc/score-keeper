@@ -364,7 +364,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v12';                       // bump together with CACHE in sw.js
+const BUILD = 'v13';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -839,6 +839,7 @@ function render(keepFocus) {
   else if (S.setup)              root.innerHTML = f7 ? viewSetup7() : viewSetup();
   else if (S.game && !away)      root.innerHTML = f7 ? viewGame7() : viewGame();
   else                           root.innerHTML = viewHome();
+  keepHistory();                 // pushed here, so it happens during the tap
   if (keepFocus) {
     const el = document.getElementById('newname');
     if (el) el.focus();
@@ -1441,11 +1442,28 @@ document.body.addEventListener('click', e => {
    BACK — the app has screens, so Back should move between them rather than
    closing the app on the first press.
 
-   The history stack is not a mirror of those screens; it is one spare entry
-   that absorbs a press. What the press closes is read off the app's own
-   state, innermost first, which is why opening things with buttons needs no
-   bookkeeping here at all.
+   Every layer you can be inside has a history entry behind it, and those are
+   pushed while rendering — which is to say, during the tap that opened the
+   layer. Nothing is pushed from inside the popstate handler: an installed app
+   does not honour that, and relying on it meant the first Back press worked
+   and the second closed the whole app.
+
+   What a press closes is still read off the app's own state, innermost first,
+   so nothing here has to be kept in step with the screens by hand.
    ========================================================================== */
+const depthOf = () => (S.setup ? 1 : 0) + (S.game && !away ? 1 : 0) +
+                      (menuOn ? 1 : 0) + (openGame ? 1 : 0);
+
+let spare = 0;                   // entries pushed and not yet walked back through
+
+// One more entry than there are layers, so the press that finds nothing left
+// to close is absorbed too and can ask before the app goes.
+function keepHistory() {
+  while (spare < depthOf() + 1) {
+    try { history.pushState({ sk: 1 }, ''); } catch (e) { return; }
+    spare++;
+  }
+}
 function stepBack() {
   // The menu is somewhere you pass through, not somewhere you were, so it
   // closes as a unit: Back out of Players and you are back at your game, not
@@ -1456,8 +1474,6 @@ function stepBack() {
   if (S.game && !away) { away = true; confirmEnd = false;          return true; }
   return false;                      // home, with nothing above it to close
 }
-
-const armBack = () => { try { history.pushState({ sk: 1 }, ''); } catch (e) {} };
 
 /* TEMPORARY — a Back press behaves differently in an installed app than in a
    tab, and the difference has not been reproducible from the outside. This
@@ -1471,15 +1487,16 @@ const topLayer = () => openGame ? 'game' : menuTab ? 'sect' : menuOn ? 'menu'
                      : S.setup ? 'setup' : (S.game && !away) ? 'play' : 'home';
 
 function note(what) {
-  backLog.push(what + '@' + history.length);
+  backLog.push(what + '@' + spare);
   while (backLog.length > 8) backLog.shift();
   try { localStorage.setItem(BACKLOG, JSON.stringify(backLog)); } catch (e) {}
 }
 
 addEventListener('popstate', () => {
+  if (spare) spare--;
   const from = topLayer();
-  if (stepBack())         { note(from);   confirmLeave = false; armBack(); done(); }
-  else if (!confirmLeave) { note('ask');  confirmLeave = true;  armBack(); done(); }
+  if (stepBack())         { note(from);   confirmLeave = false; done(); }
+  else if (!confirmLeave) { note('ask');  confirmLeave = true;  done(); }
   // A second press with the question on screen is the answer. Carry it through
   // the entry this document loaded on, so that press leaves rather than
   // landing on the same screen and needing a third. A page cannot close
@@ -1487,7 +1504,7 @@ addEventListener('popstate', () => {
   else { note('go'); history.back(); }
 });
 
-armBack();
+
 
 root.addEventListener('input', e => {
   const el = e.target;

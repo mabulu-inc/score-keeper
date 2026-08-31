@@ -23,6 +23,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   played — games, wins and win rate, with a euchre win counting for both partners — a head
   to head grid, and every finished game openable to its full hand-by-hand log, exactly as
   it looked when it ended.
+- **Fixed: the second Back press closed the whole app** when the app was installed to the
+  home screen. Each layer now has its own history entry, pushed as you open it, rather than
+  one entry being replaced after each press from inside the back handler — which an
+  installed app quietly ignores, so nothing was left to absorb the next press.
 - The menu closes as a unit when you back out of it. It is somewhere you pass through,
   not somewhere you were, so leaving *Players* puts you back in your game rather than in
   front of the menu list again — and Back now does exactly what ✕ Close does, giving the
