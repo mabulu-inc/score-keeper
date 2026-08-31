@@ -27,6 +27,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   home screen. Each layer now has its own history entry, pushed as you open it, rather than
   one entry being replaced after each press from inside the back handler — which an
   installed app quietly ignores, so nothing was left to absorb the next press.
+- **Fixed: a player held over an occupied chair juddered in place and never gave it up.**
+  Whether a chair was under your finger was decided from where its occupant's tile
+  currently was — so the moment they stepped aside they had left the chair, they sat back
+  down, and they were under your finger again. Any chair now accepts anybody, occupied or
+  empty.
 - Seating is now done by **dragging a player to the chair you want them in**, rather than
   tapping one seat and then another. Whoever is sitting there stands up and steps into the
   chair you are leaving, so the swap is shown rather than described and you can see the

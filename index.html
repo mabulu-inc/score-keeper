@@ -390,7 +390,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v17';                       // bump together with CACHE in sw.js
+const BUILD = 'v18';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -1534,15 +1534,15 @@ const swapSeats = (i, j) => {
   const held = seats[i]; seats[i] = seats[j]; seats[j] = held;
 };
 
-// The tile under the finger, ignoring the one being carried.
-function seatUnder(x, y) {
-  let hit = null;
-  for (const el of root.querySelectorAll('.table.move .seat')) {
-    if (el === drag.el) continue;
-    const r = el.getBoundingClientRect();
-    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) hit = el;
+/* The chair under the finger. Measured once when the drag starts, because a
+   player who has stood up takes their tile with them — and hit-testing where
+   the tile is now would mean they left the chair, so they sit back down, so
+   they are under the finger again. The chairs themselves never move. */
+function chairAt(chairs, x, y) {
+  for (const c of chairs) {
+    if (x >= c.l && x <= c.r && y >= c.t && y <= c.b) return c.el;
   }
-  return hit;
+  return null;
 }
 
 root.addEventListener('pointerdown', e => {
@@ -1551,7 +1551,12 @@ root.addEventListener('pointerdown', e => {
   const el = e.target.closest('.table.move .seat');
   if (!el || !S.setup.seats[+el.dataset.i]) return;    // empty chairs stay put
 
-  drag = { el, i: +el.dataset.i, x: e.clientX, y: e.clientY, onto: null };
+  drag = { el, i: +el.dataset.i, x: e.clientX, y: e.clientY, onto: null, chairs: [] };
+  for (const seat of root.querySelectorAll('.table.move .seat')) {
+    if (seat === el) continue;                 // your own chair is not a target
+    const r = seat.getBoundingClientRect();
+    drag.chairs.push({ el: seat, l: r.left, t: r.top, r: r.right, b: r.bottom });
+  }
   // Capture keeps the moves coming when the finger strays off the tile. If it
   // is refused the drag still works, because the listeners are on the window.
   try { el.setPointerCapture(e.pointerId); } catch (err) {}
@@ -1564,7 +1569,7 @@ root.addEventListener('pointermove', e => {
   drag.el.style.transform =
     'translate(' + (e.clientX - drag.x) + 'px,' + (e.clientY - drag.y) + 'px)';
 
-  const onto = seatUnder(e.clientX, e.clientY);
+  const onto = chairAt(drag.chairs, e.clientX, e.clientY);
   if (onto === drag.onto) return;
   drag.onto = onto;
   openASeat();
