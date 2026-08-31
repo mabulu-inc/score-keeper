@@ -374,6 +374,7 @@ let confirmEnd = false;
 let menuOn     = false;      // the menu screen is showing
 let menuTab    = null;       // 'players' | 'rules' | 'games' — the section open in it
 let openGame   = null;       // id of the finished game whose hands are unfolded
+let rulesKind  = null;       // game whose rules are showing, when it is not the obvious one
 let away       = false;      // stepped out of a game in progress without ending it
 
 const nameOf = id => (S.roster.find(p => p.id === id) || {}).name || '?';
@@ -518,8 +519,10 @@ const ACT = {
   first(d)  { S.setup.first = +d.i; done(); },
   /* ---- the menu ---- */
   // Closing the menu closes what was open in it, so it always opens as a list.
-  menu()    { menuOn = !menuOn; if (!menuOn) { menuTab = null; openGame = null; } done(); },
-  menuTab(d){ menuTab = menuTab === d.t ? null : d.t; openGame = null; done(); },
+  menu()    { menuOn = !menuOn; if (!menuOn) { menuTab = null; openGame = null; rulesKind = null; }
+              done(); },
+  menuTab(d){ menuTab = menuTab === d.t ? null : d.t; openGame = null; rulesKind = null; done(); },
+  rulesKind(d) { rulesKind = d.k; done(); },
   openGame(d) { openGame = openGame === d.id ? null : d.id; done(); },
 
   // Stepping out of a game is not ending it. The game stays exactly as it was.
@@ -1198,7 +1201,7 @@ function log7(g) {
    ========================================================================== */
 function viewMenu() {
   const g = S.game;
-  const which = g ? rulesOf(g).game : S.setup ? KINDS[S.setup.kind].game : 'both games';
+  const which = KINDS[rulesFocus()].game;
 
   let h = '<div class="card">' +
     sect('players', 'Players',    active().length + ' remembered',                     playersBody) +
@@ -1235,19 +1238,26 @@ function playersBody() {
          (S.game ? ', and cannot take anyone out of the game being played' : '') + '.</div>';
 }
 
-// On a screen that knows which game you are playing, only that game's rules.
-// On the home screen the question is which to play, so: both.
+/* One game at a time, always. Stacking every game on one page turns a
+   reminder you were meant to skim into something you have to search. The
+   screen usually knows which game you mean; the chips are for when it does
+   not, and for looking the other one up. */
+const rulesFocus = () =>
+  rulesKind || (S.game ? kindOf(S.game) : S.setup ? S.setup.kind : Object.keys(KINDS)[0]);
+
 function rulesBody() {
-  const kinds = S.game ? [kindOf(S.game)] : S.setup ? [S.setup.kind] : ['euchre', 'flip7'];
-  return kinds.map(k => {
-    const R = KINDS[k];
-    return (kinds.length > 1 ? '<div class="label" style="margin:6px 0 8px">' + R.game + '</div>' : '') +
-      '<table class="tab"><tbody>' +
-      R.rules.map(r =>
-        '<tr><td class="muted" style="vertical-align:top;white-space:nowrap">' + r[0] + '</td>' +
-            '<td style="text-align:left;padding-left:12px">' + r[1] + '</td></tr>').join('') +
-      '</tbody></table>';
-  }).join('');
+  const k = rulesFocus(), R = KINDS[k];
+
+  return '<div class="chips" style="margin-bottom:14px">' +
+    Object.keys(KINDS).map(x =>
+      '<button class="' + (x === k ? 'on' : '') + '" data-act="rulesKind" data-k="' + x + '">' +
+      KINDS[x].game + '</button>').join('') +
+    '</div>' +
+    '<table class="tab"><tbody>' +
+    R.rules.map(r =>
+      '<tr><td class="muted" style="vertical-align:top;white-space:nowrap">' + r[0] + '</td>' +
+          '<td style="text-align:left;padding-left:12px">' + r[1] + '</td></tr>').join('') +
+    '</tbody></table>';
 }
 
 /* ==========================================================================

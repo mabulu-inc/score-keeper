@@ -93,6 +93,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- The rules card shows **one game at a time**. It used to stack every game onto a single
+  page, which turned a reminder you were meant to skim into something you had to search.
+  It now opens on the game the screen implies — the one being played or set up — with
+  chips at the top to switch.
 - The bid euchre rules card now has a **Scoring** section of its own, like Flip 7's, and
   spells out what going set actually costs: your score is docked what you bid — −3, −4 or
   −5, −12 for partner's best, −24 for an alone. It used to say you "lose the bid", which
