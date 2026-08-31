@@ -7,6 +7,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Flip 7**, alongside bid euchre. Everyone plays for themselves, there is no limit on
+  how many are round the table, and the game goes to 200. Pick which game you are
+  playing on the home screen; both share the same list of players and the same record of
+  finished games.
+- A quick tally at the end of each Flip 7 hand: tap a player, tap the cards sitting in
+  front of them, and their score appears as you go. Every card is a toggle, so a mis-tap
+  is fixed by tapping it again rather than starting over.
+- The seven-card bonus counts itself. Seven different numbers adds 15 automatically, and
+  the numbers you didn't take go dead — there is no eighth card to tap, because the hand
+  would have ended.
+- The line under the running total shows the sum being done rather than just its answer,
+  so it is visible that ×2 doubles the number cards only and the + cards land after it —
+  the rule tables most often get wrong.
+- **Busted** is one tap and scores the hand at nothing, however far it got, clearing the
+  cards with it instead of leaving them on screen to be read as a score.
+- The button that ends a Flip 7 hand won't fire until every player has been tallied, and
+  says how many are still to do rather than leaving you to hunt for who was missed.
+- Standings that sort themselves as the game moves, and a hand-by-hand log with a column
+  per player, each running total under what they scored, and the hands somebody flipped
+  seven marked.
 - Bid euchre scoring for four players in two teams, played to 40 points. Each hand is
   three taps — the bidding, the trump, and the number of tricks the bidding team took —
   and the running score keeps itself.
@@ -44,9 +64,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Seating by tapping two players to swap them, with partners shown opposite each other
   so the teams are visible before the first card is dealt.
 - Any player can take the first deal; the deal then moves clockwise on its own.
-- The game is won by whichever team is ahead once 40 is reached, so a hand that carries
-  both teams past the post at the same time is settled on the higher score. A game level
-  on 40 or more is not over — the app says the scores are tied and deals on until one
-  team leads.
+- Either game is won by whoever is ahead once the target is passed, not by whoever
+  passed it first, so a hand that carries two teams or two players over at the same time
+  is settled on the higher score. Level at the top is not over — the app says so and
+  deals on until someone leads.
 - Works fully offline and installs to the home screen, so a table with no signal is not
   a problem. The game in progress survives closing the app.

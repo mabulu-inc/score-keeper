@@ -4,10 +4,14 @@ A card game score keeper that runs in the browser, works offline, and is built t
 put down. The point is not to use it — it's to stop the table arguing about whether
 that was 3 or 4 tricks, in one tap, and get back to the game.
 
-First game in is **bid euchre**. The structure allows for others.
+Two games so far: **bid euchre** and **Flip 7**. Tap one on the home screen.
 
 No build step, no dependencies, no server, no accounts. One HTML file, a service
 worker, and three icons.
+
+# Bid euchre
+
+Four players, two teams, first to 40.
 
 ## Using it
 
@@ -47,21 +51,13 @@ colours, without anyone doing arithmetic out loud.
 entered against the wrong player, even a finished game. There is no wrong tap you have
 to live with.
 
-### Staying out of the way
-
-The screen answers the two questions a table actually asks — *whose bid is it?* and
-*what's the score?* — and then stops. No animation, no sound, no confetti, no
-notifications, nothing that moves while you're playing cards.
+### The table diagram
 
 The table diagram carries the live state, so the answer is a glance rather than a read:
 the current player is the highlighted seat, the dealer is tagged, and each seat shows
 what that player did this round. Team colours are the same everywhere — on the seats,
 on the scoreboard, on the trick buttons, in the log — so you never have to work out
 which number belongs to whom.
-
-Under the running score, every hand is listed the way you'd have written it down:
-dealer, who bid what in which suit, tricks taken, and the running total for each team.
-That's the scratchpad, kept for you.
 
 ## Scoring
 
@@ -80,26 +76,97 @@ Bids run 3 → 4 → 5 → partner's best → alone, and each must beat the last
 (no trump) need a bid of at least 4. Partner's best and alone are all or nothing —
 anything less than all six tricks loses the full value.
 
-The game goes to whoever is **ahead** once someone reaches 40 — a hand can push both
-teams past the post at once, and the higher score takes it. If that leaves the two
-teams level on 40 or more, nobody has won: the app says so and deals the next hand.
+# Flip 7
+
+Everyone for themselves, as many players as are round the table, first to 200.
+
+## Using it
+
+1. **New game → Flip 7.** Tap in everyone playing. There is no upper limit; whoever you
+   tap first deals first, and the deal moves left from there.
+2. **Play the hand** on the table, not in the app. Nothing to press while cards are
+   being flipped.
+3. **Tally it.** When the hand is over, tap a player's name and then tap the cards
+   sitting in front of them. Their score appears as you go. Move on to the next player,
+   and when everyone is done, **Score the hand**.
+
+### The tally
+
+Tapping a card is the whole interaction. Every card is a toggle, so a mis-tap is fixed
+by tapping it again, and the total updates as you go instead of at the end:
+
+```
+  0   1   2   3   4   5   6
+  7   8   9  10  11  12
+ +2  +4  +6  +8 +10  ×2
+
+              69
+ 7 cards · 27 × 2 + 15 for the flip 7 = 69
+```
+
+The line under the total shows the sum being done, not just its answer — because **×2
+doubles the number cards only**, and the + cards land after it. That is the rule tables
+get wrong most often, and here it is in front of you rather than in an argument.
+
+**Seven different numbers** is a flip 7: the +15 goes on automatically, and the number
+cards you didn't take go dead, because there is no eighth card to tap.
+
+**Busted** is one tap and scores the hand at nothing, however far it got. It clears the
+cards with it rather than leaving them on screen to be read as a score.
+
+Freeze, Flip Three and Second Chance are not on the grid. They are worth nothing, so
+there is nothing to tally.
+
+The button at the bottom won't score the hand until every player has been dealt with,
+and it says how many are still to do rather than making you hunt for who was missed.
+
+## Scoring
+
+First to **200** wins.
+
+| | |
+|---|---|
+| Number cards | add up the ones in front of you |
+| **×2** | doubles that number total — and nothing else |
+| **+2 +4 +6 +8 +10** | added on afterwards |
+| Seven different numbers | **+15** |
+| Bust | **0**, whatever was on the table |
+
+The 0 card counts as one of your seven.
+
+# Both games
+
+## Staying out of the way
+
+The screen answers the two questions a table actually asks — *whose turn is it?* and
+*what's the score?* — and then stops. No animation, no sound, no confetti, no
+notifications, nothing that moves while you're playing cards.
+
+Under the running score, every hand is listed the way you'd have written it down, with
+each player's running total beside what they scored. That's the scratchpad, kept for
+you.
+
+Either game is won by whoever is **ahead** once the target is passed — a hand can push
+two players or two teams past the post at once, and the higher score takes it. If that
+leaves them level, nobody has won: the app says so and deals the next hand.
 
 ## Between games
 
 Players are remembered as you use them; the ones you played with most recently sort to
-the front. Finished games are kept with their full hand-by-hand record.
+the front, and the same list serves both games. Finished games are kept with their full
+hand-by-hand record.
 
-**Misspelled someone?** Tap **✎ Fix a name** under the table mid-game, or **Edit** in the
+**Misspelled someone?** Tap **✎ Fix a name** under the game mid-hand, or **Edit** in the
 players list when setting one up. The names are text fields — correct the spelling and it
 is right everywhere at once: the seats, the scoreboard, the hand log and every game
 already finished. There is nothing to press to save it.
 
-**✕ forgets a player**, taking them out of the pick list and out of any seat they were
-filling. Games they played in keep their name, so old scores never turn into question
-marks. Adding the same name again brings them back with their history attached.
+**✕ forgets a player**, taking them out of the pick list and out of any game being set
+up. Games they played in keep their name, so old scores never turn into question marks.
+Adding the same name again brings them back with their history attached.
 
-**Play again** on any previous game re-seats the same four players and moves the first
-deal on one place — so a rematch is two taps. Seats can still be swapped before you
+**Play again** on any previous game brings the same people back and moves the first deal
+on one place — so a rematch is two taps. Euchre seats can still be swapped before you
 start, for when the partnerships change.
 
 Everything lives in browser storage on that device. Nothing is uploaded, there is no
@@ -125,14 +192,21 @@ python3 -m http.server 8000
 # then http://localhost:8000
 ```
 
-## Adding another game
+## Adding a third game
 
-Bid euchre lives in one `RULES` block at the top of the script: the bid ladder, the
-trump options, how many tricks are in a hand, the target score, and a `score()`
-function that turns *tricks taken by the bidding team* into points for both sides.
-Another game means another block shaped like that one. There is deliberately no
-abstraction layer waiting for it — the second game can show what the two actually have
-in common.
+Each game is a `RULES`-shaped block at the top of the script — `RULES` for bid euchre,
+`FLIP7` for Flip 7 — plus the handful of views that draw it.
+
+Having written two, what they actually share turns out to be small, and only that much
+is shared: a **name**, a **target**, and a **way of scoring one hand**. `finish()` ends
+either game the same way, `rosterCard()` picks the players for either, and `footer()`,
+`fixName()` and the storage, undo and history behind them never had to know which game
+was being played.
+
+Everything else — seats against a flat list, teams against individuals, three guided
+taps against a card grid — stayed separate, because pushing them together would have
+cost more than it saved. A third game means a third block, and another look at where
+the line falls.
 
 ## Licence
 
