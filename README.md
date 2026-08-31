@@ -19,8 +19,8 @@ Four players, two teams, first to 40.
 
 1. **New game.** Type the four names, or tap them from the list of people you've
    played with before.
-2. **Seat them.** Partners sit opposite each other on the diagram. **Drag a player to the
-   chair you want them in.** Nobody is traded: the players in between shuffle along by one
+2. **Seat them.** Partners sit opposite each other on the diagram. **Drag a player by the ⠿ handle to
+   the chair you want them in.** Nobody is traded: the players in between shuffle along by one
    and a chair opens up under your finger, so the seating you'd get is the seating you're
    looking at while you decide.
 
@@ -95,8 +95,9 @@ Everyone for themselves, as many players as are round the table, first to 200.
 ## Using it
 
 1. **New game → Flip 7.** Tap in everyone playing — there is no upper limit. They appear
-   as a **Seating** list in the order you tapped them; drag anyone up or down to match how
-   you're actually sitting. The deal starts at the top and works down, then round again.
+   as a **Seating** list in the order you tapped them; drag anyone by the **⠿** handle to
+   match how you're actually sitting. Only the handle drags — the rest of the row scrolls,
+   so a long list can be swiped through without moving anybody. The deal starts at the top and works down, then round again.
 2. **Play the hand** on the table, not in the app. Nothing to press while cards are
    being flipped.
 3. **Tally it.** When the hand is over, tap a player's name and then tap the cards

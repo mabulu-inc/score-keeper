@@ -162,6 +162,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Fixed: swiping to scroll a seating list moved players instead.** Rows are dragged by a
+  **⠿** handle now; everywhere else on the row scrolls the page as normal. A vertical list
+  cannot tell a scroll from a reorder by direction — they are the same gesture — so the
+  only honest answer is to ask which one you meant. The euchre table works the same way.
 - **Undo says what it will take back** — *Undo hand 2*, *Undo the bidding*, *Undo the
   trump* — rather than leaving you to guess. In Flip 7 the tally is made of toggles that
   undo themselves, so the only thing on the stack is the hand scored before this one, which

@@ -99,8 +99,7 @@
   .seat.t0 .nm { color: var(--accent); }
   .seat.t1 .nm { color: var(--cool); }
   .seat.empty { border-style: dashed; }
-  .table.move .seat { touch-action: none; cursor: grab; }
-  .seat.lift { z-index: 5; cursor: grabbing; box-shadow: 0 12px 26px rgba(0, 0, 0, .55); }
+  .seat.lift { z-index: 5; box-shadow: 0 12px 26px rgba(0, 0, 0, .55); }
   .seat.turn { background: #2c3340; box-shadow: 0 0 0 2px var(--text) inset; }
   .seat .tag { font-size: 10px; font-weight: 700; letter-spacing: .07em;
                text-transform: uppercase; color: var(--muted); }
@@ -230,13 +229,25 @@
   .tot .ex b { color: var(--accent); font-weight: 600; }
 
   /* --- flip 7: the seating order, which can be dragged about --- */
+  /* Only the handle starts a drag. A list long enough to need scrolling is
+     swiped over, and in a vertical list a scroll and a reorder are the same
+     gesture — so the row itself has to stay ordinary or every attempt to
+     scroll moves somebody. */
+  .grip { flex: none; width: 34px; height: 34px; display: flex;
+          align-items: center; justify-content: center;
+          color: var(--muted); font-size: 15px; line-height: 1; letter-spacing: 2px;
+          touch-action: none; cursor: grab; }
+  .grip:active { cursor: grabbing; color: var(--text); }
+  .seat .grip { position: absolute; left: 0; bottom: 0; width: 30px; height: 30px;
+                font-size: 13px; }
+
   .order .ord { display: flex; align-items: center; gap: 10px; padding: 11px 4px;
                 position: relative; background: var(--panel);
-                border-top: 1px solid var(--line); touch-action: none; cursor: grab; }
+                border-top: 1px solid var(--line); }
   .order .ord .nm { flex: 1; min-width: 0;
                     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .order .ord .cue { color: var(--muted); font-size: 12px; }
-  .order .ord.lift { z-index: 5; cursor: grabbing; border-radius: 10px;
+  .order .ord.lift { z-index: 5; border-radius: 10px;
                      box-shadow: 0 12px 26px rgba(0, 0, 0, .55); }
 
   /* --- flip 7: standings, and the row per player while tallying --- */
@@ -406,7 +417,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v28';                       // bump together with CACHE in sw.js
+const BUILD = 'v29';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -914,6 +925,7 @@ function tableHTML(seats, opt) {
          (id ? '<div class="nm">' + esc(nameOf(id)) + '</div>'
              : '<div class="nm muted">Seat ' + (i + 1) + '</div>') +
          tags.map(t => '<div class="tag' + (t.live ? ' live' : '') + '">' + t.text + '</div>').join('') +
+         (id && opt.move ? '<span class="grip">⠿</span>' : '') +
          (id && opt.remove ? '<button class="x" data-act="unseat" data-i="' + i + '">✕</button>' : '') +
          '</div>';
   }
@@ -1059,7 +1071,7 @@ function viewSetup() {
   let h = setupBanner();
   h += tableHTML(st.seats, {
     move: true, remove: true,
-    mid: full ? 'drag to<br>reseat' : 'partners<br>sit opposite',
+    mid: full ? 'drag ⠿ to<br>reseat' : 'partners<br>sit opposite',
     tag: i => [st.first === i ? tag('deals 1st', true) : null]
   });
 
@@ -1268,8 +1280,8 @@ function viewSetup7() {
   const seating = n < FLIP7.min ? '' :
     '<div class="card"><div class="label">Seating &nbsp;·&nbsp; ' + n + ' playing</div>' +
       orderRows(st.players, i => i === 0 ? 'deals first' : '', 'toggleRoster', false) +
-      '<div class="tiny muted gap">Drag anyone up or down to match how you are sitting round ' +
-      'the table. The deal starts at the top and works down, then round again.</div></div>';
+      '<div class="tiny muted gap">Drag anyone by the ⠿ handle to match how you are sitting ' +
+      'round the table. The deal starts at the top and works down, then round again.</div></div>';
 
   return setupBanner() + rosterCard(foot) + seating +
     '<div class="card center tiny muted" style="line-height:1.7">First to <b>' + FLIP7.target +
@@ -1373,6 +1385,7 @@ function viewHand7(g, s) {
 function orderRows(ids, cue, act, locked) {
   return '<div class="order">' + ids.map((id, i) =>
     '<div class="ord" data-i="' + i + '" data-p="' + id + '">' +
+      '<span class="grip">⠿</span>' +
       '<span class="nm">' + esc(nameOf(id)) + '</span>' +
       '<span class="cue">' + (cue(i) || '') + '</span>' +
       '<button class="ghost" data-act="' + act + '" data-id="' + id + '"' +
@@ -1392,7 +1405,7 @@ function seatingRows(g, deals) {
          '</div>';
   }
 
-  return h + '<div class="tiny muted gap">Drag anyone up or down to put the order right. ' +
+  return h + '<div class="tiny muted gap">Drag anyone by the ⠿ handle to put the order right. ' +
          '✕ takes a player out of the game and keeps every hand they have already scored; ' +
          'anyone added starts from the next hand.</div>';
 }
@@ -1784,9 +1797,10 @@ const DRAGGABLE = [
 ];
 
 root.addEventListener('pointerdown', e => {
-  if (e.target.closest('[data-act]')) return;          // the ✕ is not a handle
-  const kind = DRAGGABLE.find(k => e.target.closest(k.pick));
-  const el = kind && e.target.closest(kind.pick);
+  const grip = e.target.closest('.grip');
+  if (!grip) return;                                   // anywhere else is a scroll
+  const kind = DRAGGABLE.find(k => grip.closest(k.pick));
+  const el = kind && grip.closest(kind.pick);
   if (!el || !kind.held(+el.dataset.i)) return;        // empty chairs stay put
 
   const card = el.closest('.card').getBoundingClientRect();
