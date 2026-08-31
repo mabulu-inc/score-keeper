@@ -856,11 +856,18 @@ function fmtDate(iso) {
 }
 
 /* ---- setting the table ---- */
+
+// A setup outlives the app being closed, so this screen can be the first
+// thing you see on opening. It has to say what it is.
+const setupBanner = () =>
+  '<div class="banner">New game &nbsp;·&nbsp; <b>' + KINDS[S.setup.kind].game + '</b></div>';
+
 function viewSetup() {
   const st = S.setup;
   const full = st.seats.every(s => s);
 
-  let h = tableHTML(st.seats, {
+  let h = setupBanner();
+  h += tableHTML(st.seats, {
     act: 'tapSeat', sel: st.sel, remove: true,
     mid: full ? 'tap two<br>to swap' : 'partners<br>sit opposite',
     tag: i => [st.first === i ? tag('deals 1st', true) : null]
@@ -1068,7 +1075,7 @@ function viewSetup7() {
         esc(nameOf(st.players[0])) + ' deals first, then the deal moves left.') +
     '</div>';
 
-  return rosterCard(foot) +
+  return setupBanner() + rosterCard(foot) +
     '<div class="card center tiny muted" style="line-height:1.7">First to <b>' + FLIP7.target +
       '</b>. At the end of each hand you tap the cards a player is holding and the score does ' +
       'itself — seven different numbers is <b>+' + FLIP7.bonus + '</b>.</div>' +

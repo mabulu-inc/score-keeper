@@ -1,5 +1,5 @@
 // Bump CACHE when any asset changes — old caches are dropped on activate.
-const CACHE = 'score-keeper-v8';
+const CACHE = 'score-keeper-v9';
 const ASSETS = [
   './',
   './index.html',

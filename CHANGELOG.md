@@ -104,6 +104,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   would open on — which read as though that were the only game with rules written up.
   Every menu row now describes what is inside it, the way *5 remembered* and *4 finished*
   already did.
+- The setup screen says which game it is setting up again — *New game · Flip 7* across the
+  top. It lost that when the menu took over the header slot the name used to sit in, and
+  because a half-built setup outlives closing the app, it could be the first screen you saw
+  on opening with nothing on it naming the game.
 - The rules card shows **one game at a time**. It used to stack every game onto a single
   page, which turned a reminder you were meant to skim into something you had to search.
   It now opens on the game the screen implies — the one being played or set up — with
