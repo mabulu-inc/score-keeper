@@ -138,9 +138,16 @@ The 0 card counts as one of your seven.
 
 # The menu
 
-**☰ Menu**, top right, on every screen. It holds the three things you might want without
-leaving what you're doing, and each one opens where it stands rather than taking you
-somewhere else and back.
+**☰ Menu**, top right, on every screen — and it says ☰ Menu whether it is open or not,
+because a menu with a Close button on it is a strange object.
+
+Tapping it drops a short panel over whatever you were doing, which stays visible and dimmed
+behind. Tap anywhere off the panel and it goes. Tap one of its three rows and it also goes,
+replaced by what you picked — the menu is somewhere you pass through, so it does not sit
+there after you have passed through it. **Back** does the same as tapping away.
+
+What you picked is then an ordinary screen with **DONE** on it, and one press of Back
+returns you to your game.
 
 ### Players
 
@@ -191,15 +198,12 @@ The back button moves **within** the app, not out of it. Each press closes one t
 innermost first:
 
 ```
- the menu, from anywhere in it  →  whatever you were doing
- a past game's hands            →  the menu it was opened from
- the setup screen               →  home
- a game in progress             →  home, with the game kept
+ the menu panel        →  whatever it was covering
+ a past game's hands   →  the list it was opened from
+ Players, Rules, a board  →  whatever you were doing
+ the setup screen      →  home
+ a game in progress    →  home, with the game kept
 ```
-
-**The menu closes as a unit.** It is somewhere you pass through, not somewhere you were,
-so backing out of *Players* returns you to your game rather than to the menu list. Back
-and **✕ Close** do the same thing — the menu has one exit, not two.
 
 Backing out of a game is the same as *Leave this game for now* — it keeps its place, it
 does not end it.

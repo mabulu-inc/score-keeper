@@ -44,6 +44,7 @@
     color: var(--muted); margin: 4px 0 16px; display: flex; align-items: baseline; gap: 8px;
   }
   h1 em { color: var(--accent); font-style: normal; }
+  h1 { position: relative; z-index: 22; }      /* the menu button stays above the scrim */
   .menubtn { margin-left: auto; padding: 2px 0 2px 14px; background: none; border: none;
              font: inherit; font-size: 11px; font-weight: 600; letter-spacing: .1em;
              text-transform: uppercase; color: var(--muted); border-radius: 0; }
@@ -120,6 +121,17 @@
   input[type=text]:focus { outline: none; border-color: var(--accent); }
   .nameRow { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
   .nameRow input { flex: 1; }
+  /* --- the menu: a short panel over whatever you were doing --- */
+  .scrim { position: fixed; inset: 0; background: rgba(6, 7, 9, .62); z-index: 20; }
+  .popwrap { position: fixed; inset: 0; z-index: 21; pointer-events: none;
+             max-width: 560px; margin: 0 auto; padding: 0 16px; }
+  .pop { pointer-events: auto; position: absolute; top: 42px; right: 16px;
+         width: 264px; max-width: calc(100% - 32px);
+         background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+         padding: 2px 14px 12px; box-shadow: 0 12px 34px rgba(0, 0, 0, .55); }
+  .pop .sect { padding: 13px 0; }
+  .pop .foot { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 2px; }
+
   /* --- the menu: three sections that open where they stand --- */
   .sect { width: 100%; display: flex; align-items: baseline; gap: 10px; text-align: left;
           font: inherit; color: var(--text); background: none; border: none;
@@ -127,7 +139,7 @@
   .sect:first-of-type { border-top: none; }
   .sect .cue { margin-left: auto; color: var(--muted); font-size: 12px;
                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sect.open { color: var(--accent); font-weight: 600; }
+
   .sbody { padding: 2px 0 14px; }
 
   /* --- the board --- */
@@ -364,7 +376,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v13';                       // bump together with CACHE in sw.js
+const BUILD = 'v14';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -550,10 +562,13 @@ const ACT = {
   unseat(d) { S.setup.seats[+d.i] = null; S.setup.sel = null; done(); },
   first(d)  { S.setup.first = +d.i; done(); },
   /* ---- the menu ---- */
-  // Closing the menu closes what was open in it, so it always opens as a list.
-  menu()    { menuOn = !menuOn; if (!menuOn) { menuTab = null; openGame = null; rulesKind = null; }
-              done(); },
-  menuTab(d){ menuTab = menuTab === d.t ? null : d.t; openGame = null; rulesKind = null; done(); },
+  menu()      { menuOn = !menuOn; done(); },
+  closeMenu() { menuOn = false; done(); },          // tapping away from the panel
+
+  // Picking from the menu is passing through it: the panel goes, and what you
+  // picked takes the screen.
+  menuTab(d)  { menuTab = d.t; menuOn = false; openGame = null; rulesKind = null; done(); },
+  closeTab()  { menuTab = null; openGame = null; rulesKind = null; done(); },
   rulesKind(d) { rulesKind = d.k; done(); },
   openGame(d) { openGame = openGame === d.id ? null : d.id; done(); },
 
@@ -832,13 +847,14 @@ function midHTML(g) {
 
 function render(keepFocus) {
   const f7 = S.setup ? S.setup.kind === 'flip7' : S.game && isF7(S.game);
-  menuBtn.textContent = menuOn ? '✕ Close' : '☰ Menu';
-  menuBtn.className   = 'menubtn' + (menuOn ? ' open' : '');
+  menuBtn.textContent = '☰ Menu';
+  menuBtn.className   = 'menubtn' + (menuOn || menuTab ? ' open' : '');
 
-  if (menuOn)                    root.innerHTML = viewMenu();
-  else if (S.setup)              root.innerHTML = f7 ? viewSetup7() : viewSetup();
-  else if (S.game && !away)      root.innerHTML = f7 ? viewGame7() : viewGame();
-  else                           root.innerHTML = viewHome();
+  const view = menuTab            ? viewSection()
+             : S.setup            ? (f7 ? viewSetup7() : viewSetup())
+             : S.game && !away    ? (f7 ? viewGame7() : viewGame())
+                                  : viewHome();
+  root.innerHTML = view + (menuOn ? menuPanel() : '');
   keepHistory();                 // pushed here, so it happens during the tap
   if (keepFocus) {
     const el = document.getElementById('newname');
@@ -1250,30 +1266,11 @@ function log7(g) {
    THE MENU — the three things you might want from any screen. Each opens
    where it stands rather than taking you somewhere else and back.
    ========================================================================== */
-function viewMenu() {
-  const g = S.game;
-  const games = Object.keys(KINDS).length;
-  const which = games === 2 ? 'both games' : games + ' games';
-
-  let h = '<div class="card">' +
-    sect('players', 'Players',    active().length + ' remembered',                     playersBody) +
-    sect('rules',   'Rules',      which,                                               rulesBody) +
-    sect('games',   'Past games', S.history.length ? S.history.length + ' finished'
-                                                   : 'none yet',                       boardBody) +
-    '</div>';
-
-  if (g && !away) {
-    h += '<button style="width:100%" data-act="stepOut">Leave this game for now</button>' +
-         '<div class="tiny muted center gap">It keeps its place. Nothing is scored or lost.</div>';
-  }
-  return h + buildLine();
-}
-
 /* The waiting update is worth a button: the new page is already cached, so
    reloading is all that stands between it and being the one you are using. */
 function buildLine() {
   const stale = cached && cached !== BUILD;
-  return '<div class="tiny muted center" style="margin-top:22px">Score Keeper ' + BUILD +
+  return '<div class="tiny muted center">Score Keeper ' + BUILD +
            (stale ? ' · <b>' + cached + ' ready</b>' : '') +
            (backLog.length ? '<br>back: ' + backLog.join('  ') +
              ' <button class="ghost" data-act="clearLog" style="font-size:11px;padding:0 6px">' +
@@ -1282,13 +1279,43 @@ function buildLine() {
                   'data-act="reload">Reload to finish updating</button>' : '');
 }
 
-function sect(id, title, hint, body) {
-  const on = menuTab === id;
-  return '<button class="sect' + (on ? ' open' : '') + '" data-act="menuTab" data-t="' + id + '">' +
-           '<span>' + title + '</span>' +
-           '<span class="cue">' + (on ? 'close' : esc(hint)) + '</span>' +
-         '</button>' +
-         (on ? '<div class="sbody">' + body() + '</div>' : '');
+function menuPanel() {
+  const g = S.game;
+  const games = Object.keys(KINDS).length;
+
+  let h = '<div class="scrim" data-act="closeMenu"></div>' +
+          '<div class="popwrap"><div class="pop">' +
+            row('players', 'Players',    active().length + ' remembered') +
+            row('rules',   'Rules',      games === 2 ? 'both games' : games + ' games') +
+            row('games',   'Past games', S.history.length ? S.history.length + ' finished'
+                                                          : 'none yet');
+
+  if (g && !away) {
+    h += '<div class="foot"><button style="width:100%" data-act="stepOut">' +
+         'Leave this game for now</button></div>';
+  }
+  return h + '<div class="foot">' + buildLine() + '</div></div></div>';
+}
+
+// A row is a way out of the menu, not something that unfolds inside it.
+const row = (id, title, hint) =>
+  '<button class="sect" data-act="menuTab" data-t="' + id + '">' +
+    '<span>' + title + '</span><span class="cue">' + esc(hint) + '</span></button>';
+
+/* What you picked, as an ordinary screen. The panel is already gone, so there
+   is one way out of here and Back is it — Done says the same thing for anyone
+   who would rather tap than swipe. */
+function viewSection() {
+  const sec = { players: ['Players',    playersBody],
+                rules:   ['Rules',      rulesBody],
+                games:   ['Past games', boardBody] }[menuTab];
+  if (!sec) return viewHome();
+
+  return '<div class="card"><div class="label" style="display:flex">' + sec[0] +
+           '<span style="margin-left:auto"><button class="ghost" data-act="closeTab" ' +
+           'style="font:inherit;letter-spacing:.1em;padding:0">DONE</button></span></div>' +
+           sec[1]() +
+         '</div>';
 }
 
 function playersBody() {
@@ -1452,7 +1479,7 @@ document.body.addEventListener('click', e => {
    so nothing here has to be kept in step with the screens by hand.
    ========================================================================== */
 const depthOf = () => (S.setup ? 1 : 0) + (S.game && !away ? 1 : 0) +
-                      (menuOn ? 1 : 0) + (openGame ? 1 : 0);
+                      (menuTab ? 1 : 0) + (menuOn ? 1 : 0) + (openGame ? 1 : 0);
 
 let spare = 0;                   // entries pushed and not yet walked back through
 
@@ -1465,11 +1492,12 @@ function keepHistory() {
   }
 }
 function stepBack() {
-  // The menu is somewhere you pass through, not somewhere you were, so it
-  // closes as a unit: Back out of Players and you are back at your game, not
-  // looking at the menu list again. Back and ✕ Close now do the same thing.
+  // The panel sits over everything, so it goes first. Below it, a section is
+  // an ordinary screen: one press and you are back at your game, because the
+  // panel was already gone the moment you picked from it.
+  if (menuOn)          { menuOn = false;                           return true; }
   if (openGame)        { openGame = null;                          return true; }
-  if (menuOn)          { menuOn = false; menuTab = null; rulesKind = null; return true; }
+  if (menuTab)         { menuTab = null; rulesKind = null;         return true; }
   if (S.setup)         { S.setup = null;                           return true; }
   if (S.game && !away) { away = true; confirmEnd = false;          return true; }
   return false;                      // home, with nothing above it to close
@@ -1483,7 +1511,7 @@ const BACKLOG = 'score-keeper-back';
 let backLog = [];
 try { backLog = JSON.parse(localStorage.getItem(BACKLOG)) || []; } catch (e) {}
 
-const topLayer = () => openGame ? 'game' : menuTab ? 'sect' : menuOn ? 'menu'
+const topLayer = () => menuOn ? 'panel' : openGame ? 'game' : menuTab ? 'sect'
                      : S.setup ? 'setup' : (S.game && !away) ? 'play' : 'home';
 
 function note(what) {

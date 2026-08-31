@@ -27,7 +27,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   home screen. Each layer now has its own history entry, pushed as you open it, rather than
   one entry being replaced after each press from inside the back handler — which an
   installed app quietly ignores, so nothing was left to absorb the next press.
-- The menu closes as a unit when you back out of it. It is somewhere you pass through,
+- The menu is a short panel over whatever you were doing rather than a screen of its own.
+  Tap away from it to dismiss it, or pick a row — which dismisses it too, and gives the
+  screen to what you picked. The header button reads ☰ Menu throughout: a menu with a
+  Close button on it is a strange object, and the panel now has three ways out that all
+  feel like the same gesture.
+- Picking a menu row no longer leaves the menu list sitting above what you picked, so
+  Back out of *Players* is one press to your game rather than two. It is somewhere you pass through,
   not somewhere you were, so leaving *Players* puts you back in your game rather than in
   front of the menu list again — and Back now does exactly what ✕ Close does, giving the
   menu one exit instead of two.
