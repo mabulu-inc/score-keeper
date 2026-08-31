@@ -162,6 +162,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Undo says what it will take back** — *Undo hand 2*, *Undo the bidding*, *Undo the
+  trump* — rather than leaving you to guess. In Flip 7 the tally is made of toggles that
+  undo themselves, so the only thing on the stack is the hand scored before this one, which
+  is not what a button marked Undo suggests from the middle of a tally.
+- In Flip 7 it now rides in the same pinned bar as **Score the hand**, because a tally of
+  eight runs past the bottom of the screen and taking back the last hand is the one thing
+  you might urgently want from the middle of it.
 - **Start game** and **Score the hand** stay in reach however long the list above them
   gets. A Flip 7 table of eight put both of them off the bottom of the screen, which leaves
   you on a screen with apparently no way forward. They hold to the bottom only while they

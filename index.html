@@ -406,7 +406,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v27';                       // bump together with CACHE in sw.js
+const BUILD = 'v28';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -443,6 +443,9 @@ if (S.setup && !S.setup.kind) S.setup.kind = 'euchre';   // a table set before F
 // Flip 7 hands used to be lists, one score per seat. Re-key them against the
 // players they belonged to, so a game in progress survives people coming and
 // going from here on.
+// Undo used to be bare snapshots with nothing said about them.
+S.undo = (S.undo || []).map(u => typeof u === 'string' ? { was: u } : u);
+
 for (const g of [S.game].concat(S.history)) {
   if (!g || !isF7(g)) continue;
   for (const h of g.hands) {
@@ -530,12 +533,25 @@ function finish(g) {
 }
 
 /* Undo is a stack of whole-game snapshots — nothing to keep in sync, and it
-   reaches back through bidding, trump and finished hands alike. */
-function push() {
+   reaches back through bidding, trump and finished hands alike.
+
+   Each one carries what it would take back. A hand of Flip 7 is tallied with
+   toggles that undo themselves, so the only thing on the stack is the hand
+   scored before this one — which is emphatically not what somebody in the
+   middle of tallying expects a button marked Undo to do. So it says. */
+function push(what) {
   if (!S.game) return;
-  S.undo.push(JSON.stringify(S.game));
+  S.undo.push({ was: JSON.stringify(S.game), what });
   if (S.undo.length > 40) S.undo.shift();
 }
+
+const undoes = () => {
+  const last = S.undo[S.undo.length - 1];
+  return last && last.what ? 'Undo ' + last.what : 'Undo';
+};
+
+const undoButton = () =>
+  '<button data-act="undo"' + (S.undo.length ? '' : ' disabled') + '>' + undoes() + '</button>';
 
 function startBidding(g) {
   const dealer = dealerFor(g, g.hands.length);
@@ -650,18 +666,18 @@ const ACT = {
   },
 
   /* ---- playing a hand ---- */
-  bid(d)  { push(); takeTurn(S.game, +d.v); done(); },
-  pass()  { push(); takeTurn(S.game, null); done(); },
+  bid(d)  { push('the bidding'); takeTurn(S.game, +d.v); done(); },
+  pass()  { push('the bidding'); takeTurn(S.game, null); done(); },
 
   trump(d) {
-    push();
+    push('the trump');
     S.game.pending.trump = d.k;
     S.game.phase = 'tricks';
     done();
   },
 
   tricks(d) {
-    push();
+    push('hand ' + (S.game.hands.length + 1));
     const g = S.game, p = g.pending, t = +d.t;
     const r = RULES.score(p.bid, t);
     const bt = teamOf(p.bidder);
@@ -727,7 +743,7 @@ const ACT = {
   scoreHand() {
     const g = S.game;
     if (g.entry.some(e => !e)) return;
-    push();
+    push('hand ' + (g.hands.length + 1));
     const pts = {}, seven = {};
     g.players.forEach((id, i) => { pts[id] = FLIP7.score(g.entry[i]); seven[id] = flipped(g.entry[i]); });
     g.hands.push({ pts, seven });
@@ -741,7 +757,7 @@ const ACT = {
     const prev = S.undo.pop();
     if (!prev) return;
     const wasDone = S.game.done;
-    S.game = JSON.parse(prev);
+    S.game = JSON.parse(prev.was);
     if (wasDone) S.history = S.history.filter(h => h.id !== S.game.id);
     done();
   },
@@ -943,8 +959,8 @@ function rosterCard(foot) {
   return h + (foot || '') + '</div>';
 }
 
-function footer(g) {
-  const undo = '<button data-act="undo"' + (S.undo.length ? '' : ' disabled') + '>Undo</button>';
+function footer(g, elsewhere) {
+  const undo = elsewhere ? '' : undoButton();
   if (g.done) return '<div class="row">' + undo + '<button data-act="home">Home</button></div>';
   if (confirmEnd) {
     return '<div class="card center ask"><div class="tiny muted" style="margin-bottom:10px">' +
@@ -1292,7 +1308,7 @@ function viewGame7() {
   }
   h += '</div>';
 
-  return h + (g.done ? viewOver7(g, s) : viewHand7(g, s)) + viewLog(g) + footer(g);
+  return h + (g.done ? viewOver7(g, s) : viewHand7(g, s)) + viewLog(g) + footer(g, !g.done);
 }
 
 function standings(g, s) {
@@ -1339,8 +1355,13 @@ function viewHand7(g, s) {
   });
   h += '</div>';
 
-  // The button carries the count, so nobody has to hunt for who was missed.
-  return h + '<div class="act"><button class="primary" style="width:100%" data-act="scoreHand"' +
+  /* The button carries the count, so nobody has to hunt for who was missed —
+     and Undo rides along with it, because the tally can run well past the
+     bottom of the screen and taking back the last hand is the one thing you
+     might urgently want from the middle of it. */
+  return h + '<div class="act row">' +
+             (S.undo.length ? undoButton() : '') +
+             '<button class="primary" style="flex:2" data-act="scoreHand"' +
              (left ? ' disabled' : '') + '>' +
              (left ? left + ' still to tally' : 'Score the hand') + '</button></div>';
 }
