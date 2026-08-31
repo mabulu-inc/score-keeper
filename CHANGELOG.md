@@ -7,6 +7,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **☰ Menu** in the header, on every screen, holding the three things you might want
+  without leaving the game in front of you. Each section opens where it stands rather
+  than taking you somewhere else and back.
+- **Players** is now reachable from anywhere, not only while setting a game up. Correct a
+  spelling and it is right everywhere at once, including games already finished; ✕ forgets
+  a player without touching the games they played in. Anyone sitting in the game being
+  played cannot be forgotten out from under it, though their name is still theirs to fix.
+- **Rules** for the game you are playing, or for both when you are choosing between them.
+  Deliberately only what the screen does not already say: the trick buttons and the Flip 7
+  tally show the arithmetic as you play, so the card covers the bidding ladder, screw the
+  dealer, and the Flip 7 action cards — Freeze, Flip Three and Second Chance — which sit on
+  the table but score nothing and so never appear in the tally.
+- **Past games** finally shows what was always being recorded. Standings across everything
+  played — games, wins and win rate, with a euchre win counting for both partners — a head
+  to head grid, and every finished game openable to its full hand-by-hand log, exactly as
+  it looked when it ended.
+- **Leave this game for now**, so a game in progress has an exit that is not *End game*.
+  It keeps its place, the home screen offers it back and says which hand it reached, and
+  says plainly that starting a different game is what would discard it.
+
 - **Flip 7**, alongside bid euchre. Everyone plays for themselves, there is no limit on
   how many are round the table, and the game goes to 200. Pick which game you are
   playing on the home screen; both share the same list of players and the same record of
@@ -70,3 +90,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   deals on until someone leads.
 - Works fully offline and installs to the home screen, so a table with no signal is not
   a problem. The game in progress survives closing the app.
+
+### Changed
+
+- The player list on the setup screen now only picks who is playing. Correcting and
+  forgetting moved to the menu, where they are available on every screen — which also
+  ended a bug where a name corrected on the setup screen kept showing its old spelling on
+  the table above until you tapped DONE.
+- ✎ Fix a name is gone, replaced by **☰ Menu → Players**. It was a muted line in the body
+  of one screen and read as decoration.
+- Past games moved off the home screen into the menu, so they are reachable mid-game
+  rather than only between games.
+- Two standing hint lines came out — the ×2 note under every Flip 7 tally and the
+  all-or-nothing note under the bid panel — now that the rules card covers them. Less on
+  screen while you are actually playing.
+- The game's name moved out of the header, which the menu now occupies, and into the hand
+  banner: *Flip 7 · Hand 3 · Ray deals*.

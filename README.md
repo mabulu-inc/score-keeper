@@ -4,7 +4,9 @@ A card game score keeper that runs in the browser, works offline, and is built t
 put down. The point is not to use it — it's to stop the table arguing about whether
 that was 3 or 4 tricks, in one tap, and get back to the game.
 
-Two games so far: **bid euchre** and **Flip 7**. Tap one on the home screen.
+Two games so far: **bid euchre** and **Flip 7**. Tap one on the home screen. Everything
+that is not the game in front of you — the player list, the rules, and every game you've
+ever finished — is behind **☰ Menu**, in the same place on every screen.
 
 No build step, no dependencies, no server, no accounts. One HTML file, a service
 worker, and three icons.
@@ -134,6 +136,57 @@ First to **200** wins.
 
 The 0 card counts as one of your seven.
 
+# The menu
+
+**☰ Menu**, top right, on every screen. It holds the three things you might want without
+leaving what you're doing, and each one opens where it stands rather than taking you
+somewhere else and back.
+
+### Players
+
+Every player you've ever entered, as a text field. Correct a spelling and it is right
+everywhere at once — the seats, the scoreboard, the hand log, and every game already
+finished — because a player is stored once and referred to by id everywhere else. There
+is no rename button and nothing to press to save it.
+
+**✕ forgets a player**, taking them out of the pick list. Games they played in keep their
+name, so old scores never turn into question marks, and adding the same name again brings
+them back with their history attached. Anyone sitting in the game being played can't be
+forgotten out from under it — their ✕ is greyed until the game is over. Their name is
+still theirs to correct.
+
+### Rules
+
+A reminder, not the rulebook — deliberately only the things the screen doesn't already
+say. The trick buttons and the Flip 7 tally show you the arithmetic as you play, so the
+rules card covers what they leave out: the bidding ladder and screw-the-dealer for euchre,
+and for Flip 7 the action cards, which sit on the table but score nothing and so never
+appear in the tally.
+
+During a game it shows that game. On the home screen it shows both, because that's the
+question at that point.
+
+### Past games
+
+Every finished game was always recorded hand by hand. This is where it gets read.
+
+**Standings** across everything played: games, wins, and win rate per player. A euchre win
+counts for both partners.
+
+**Head to head** — who beats whom, as a grid. Read across the row: their wins first.
+Partners never meet each other, so a partnership shows no result between them.
+
+**Games**, newest first. Tap one to unfold its full hand-by-hand log, exactly as it looked
+when it finished. **Play again** brings the same people back with the deal moved on one
+place, and **✕** deletes the record.
+
+### Leaving a game
+
+A game in progress used to have only one exit — *End game*, which discarded it. The menu
+has **Leave this game for now**, which doesn't. The game keeps its place and the home
+screen offers it back; starting a different game is the only thing that discards it, and
+the home screen says so before you do.
+
 # Both games
 
 ## Staying out of the way
@@ -153,20 +206,13 @@ leaves them level, nobody has won: the app says so and deals the next hand.
 ## Between games
 
 Players are remembered as you use them; the ones you played with most recently sort to
-the front, and the same list serves both games. Finished games are kept with their full
-hand-by-hand record.
+the front, and the same list serves both games. Setting a game up is only picking who is
+playing — correcting and forgetting live under **☰ Menu → Players**, on every screen, so
+the setup screen does one thing.
 
-**Misspelled someone?** Tap **✎ Fix a name** under the game mid-hand, or **Edit** in the
-players list when setting one up. The names are text fields — correct the spelling and it
-is right everywhere at once: the seats, the scoreboard, the hand log and every game
-already finished. There is nothing to press to save it.
-
-**✕ forgets a player**, taking them out of the pick list and out of any game being set
-up. Games they played in keep their name, so old scores never turn into question marks.
-Adding the same name again brings them back with their history attached.
-
-**Play again** on any previous game brings the same people back and moves the first deal
-on one place — so a rematch is two taps. Euchre seats can still be swapped before you
+Finished games are kept with their full hand-by-hand record, under **☰ Menu → Past
+games**. **Play again** on any of them brings the same people back and moves the first
+deal on one place — so a rematch is two taps. Euchre seats can still be swapped before you
 start, for when the partnerships change.
 
 Everything lives in browser storage on that device. Nothing is uploaded, there is no
@@ -195,13 +241,15 @@ python3 -m http.server 8000
 ## Adding a third game
 
 Each game is a `RULES`-shaped block at the top of the script — `RULES` for bid euchre,
-`FLIP7` for Flip 7 — plus the handful of views that draw it.
+`FLIP7` for Flip 7 — plus the handful of views that draw it. A block carries its own
+`rules` copy for the menu, so a new game explains itself without touching the menu.
 
 Having written two, what they actually share turns out to be small, and only that much
-is shared: a **name**, a **target**, and a **way of scoring one hand**. `finish()` ends
-either game the same way, `rosterCard()` picks the players for either, and `footer()`,
-`fixName()` and the storage, undo and history behind them never had to know which game
-was being played.
+is shared: a **name**, a **target**, a **way of scoring one hand**, and that `rules`
+list. `finish()` ends either game the same way, `rosterCard()` picks the players for
+either, `logTable()` prints either game's hands for the live scoreboard and the board
+alike, and `footer()` and the storage, undo and history behind them never had to know
+which game was being played.
 
 Everything else — seats against a flat list, teams against individuals, three guided
 taps against a card grid — stayed separate, because pushing them together would have

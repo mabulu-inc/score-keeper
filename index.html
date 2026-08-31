@@ -44,7 +44,10 @@
     color: var(--muted); margin: 4px 0 16px; display: flex; align-items: baseline; gap: 8px;
   }
   h1 em { color: var(--accent); font-style: normal; }
-  h1 #sub { margin-left: auto; font-size: 11px; letter-spacing: .06em; }
+  .menubtn { margin-left: auto; padding: 2px 0 2px 14px; background: none; border: none;
+             font: inherit; font-size: 11px; font-weight: 600; letter-spacing: .1em;
+             text-transform: uppercase; color: var(--muted); border-radius: 0; }
+  .menubtn.open { color: var(--accent); }
 
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
   .label { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
@@ -117,8 +120,30 @@
   input[type=text]:focus { outline: none; border-color: var(--accent); }
   .nameRow { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
   .nameRow input { flex: 1; }
-  .fixname { display: block; width: 100%; background: none; border: none; color: var(--muted);
-             font-size: 12px; padding: 0 0 12px; margin-top: -6px; }
+  /* --- the menu: three sections that open where they stand --- */
+  .sect { width: 100%; display: flex; align-items: baseline; gap: 10px; text-align: left;
+          font: inherit; color: var(--text); background: none; border: none;
+          border-top: 1px solid var(--line); border-radius: 0; padding: 15px 2px; }
+  .sect:first-of-type { border-top: none; }
+  .sect .cue { margin-left: auto; color: var(--muted); font-size: 12px;
+               overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sect.open { color: var(--accent); font-weight: 600; }
+  .sbody { padding: 2px 0 14px; }
+
+  /* --- the board --- */
+  table.tab { width: 100%; border-collapse: collapse; font-size: 13px;
+              font-variant-numeric: tabular-nums; }
+  table.tab th { font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
+                 color: var(--muted); font-weight: 600; text-align: right; padding: 0 4px 7px; }
+  table.tab td { padding: 8px 4px; border-top: 1px solid var(--line); text-align: right; }
+  table.tab th:first-child, table.tab td:first-child { text-align: left; }
+  table.tab td.who { max-width: 10ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  table.tab .won { color: var(--accent); font-weight: 600; }
+  table.h2h td, table.h2h th { text-align: center; padding: 7px 5px; font-size: 12px; }
+  table.h2h th:first-child, table.h2h td:first-child { text-align: left; }
+  table.h2h .self { color: var(--line); }
+  .hist button.txt { flex: 1; min-width: 0; text-align: left; font: inherit; color: var(--text);
+                     background: none; border: none; border-radius: 0; padding: 2px 0; }
 
   /* --- scoreboard --- */
   .board { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -217,7 +242,7 @@
 </style>
 </head>
 <body>
-<h1>Score <em>Keeper</em><span id="sub" class="muted"></span></h1>
+<h1>Score <em>Keeper</em><button id="menubtn" class="menubtn" data-act="menu"></button></h1>
 <div id="root"></div>
 
 <script>
@@ -237,6 +262,18 @@ const RULES = {
     { v: 12, label: "Partner's best", short: 'PB',    all: true },
     { v: 24, label: 'Alone',          short: 'Alone', all: true }
   ],
+  /* A reminder, not the rulebook: only what the screen does not already say. */
+  rules: [
+    ['Goal',       'First to 40, and you have to be ahead to take it.'],
+    ['Bidding',    'One round, opening to the left of the dealer. Each bid beats the last: ' +
+                   '3, 4, 5, partner’s best, alone.'],
+    ['The dealer', 'If it reaches the dealer with nothing bid, the dealer has to bid.'],
+    ['Trump',      'Called by whoever won the bid. High and low need a bid of 4.'],
+    ['Made it',    'Take at least your bid and score every trick you took, overtricks included.'],
+    ['Set',        'Take fewer and lose the bid instead. Partner’s best and alone need all six.'],
+    ['Defenders',  'The other team banks a point a trick, every hand, whatever happens.']
+  ],
+
   trumps: [
     { k: 'H',  label: '♥︎',    name: 'hearts',   red: true },
     { k: 'D',  label: '♦︎',    name: 'diamonds', red: true },
@@ -279,6 +316,19 @@ const FLIP7 = {
   numbers: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   adders: [2, 4, 6, 8, 10],
 
+  /* The tally already shows the arithmetic, so this covers what it leaves out:
+     the action cards, which are on the table but score nothing. */
+  rules: [
+    ['Goal',       'First to 200. Play as many hands as that takes.'],
+    ['Your turn',  'Hit for another card, or stay and bank what you are holding.'],
+    ['Bust',       'A number you already hold ends your hand at nothing — unless you are ' +
+                   'holding Second Chance, which discards the duplicate instead.'],
+    ['Freeze',     'Ends a player’s hand where it stands. They bank what they have.'],
+    ['Flip Three', 'That player takes three more cards, one at a time.'],
+    ['Flip 7',     'Seven different numbers ends the whole hand at once, and is worth 15 on top.'],
+    ['Scoring',    'The numbers add up, ×2 doubles that total, and the + cards land after it.']
+  ],
+
   /* The number cards add up, ×2 doubles that total and nothing else, the +
      cards go on afterwards, and seven different numbers is 15 more on top.
      A bust scores nothing at all, whatever was on the table when it went. */
@@ -311,9 +361,11 @@ if (S.setup && !S.setup.kind) S.setup.kind = 'euchre';   // a table set before F
 const save = () => { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} };
 
 // Screen-local flags, deliberately not persisted.
-let editRoster = false;
-let editNames  = false;
 let confirmEnd = false;
+let menuOn     = false;      // the menu screen is showing
+let menuTab    = null;       // 'players' | 'rules' | 'games' — the section open in it
+let openGame   = null;       // id of the finished game whose hands are unfolded
+let away       = false;      // stepped out of a game in progress without ending it
 
 const nameOf = id => (S.roster.find(p => p.id === id) || {}).name || '?';
 
@@ -455,15 +507,22 @@ const ACT = {
 
   unseat(d) { S.setup.seats[+d.i] = null; S.setup.sel = null; done(); },
   first(d)  { S.setup.first = +d.i; done(); },
-  editRoster() { editRoster = !editRoster; done(); },
+  /* ---- the menu ---- */
+  // Closing the menu closes what was open in it, so it always opens as a list.
+  menu()    { menuOn = !menuOn; if (!menuOn) { menuTab = null; openGame = null; } done(); },
+  menuTab(d){ menuTab = menuTab === d.t ? null : d.t; openGame = null; done(); },
+  openGame(d) { openGame = openGame === d.id ? null : d.id; done(); },
+
+  // Stepping out of a game is not ending it. The game stays exactly as it was.
+  stepOut() { away = true; menuOn = false; done(); },
+  resume()  { away = false; done(); },
   delPlayer(d) {
     const p = S.roster.find(p => p.id === d.id);
     if (p) p.hidden = true;
     if (S.setup) unpick(d.id);
     done();
   },
-  editNames() { editNames = !editNames; done(); },
-  cancelSetup() { S.setup = null; editRoster = false; done(); },
+  cancelSetup() { S.setup = null; done(); },
 
   start() {
     const st = S.setup;
@@ -483,7 +542,7 @@ const ACT = {
                               phase: null, bidding: null, pending: null });
     S.undo = [];
     S.setup = null;
-    editRoster = false;
+    away = false;
     if (!f7) startBidding(S.game);
     done();
   },
@@ -580,7 +639,7 @@ const ACT = {
   },
 
   /* ---- getting around ---- */
-  home()      { S.game = null; S.undo = []; confirmEnd = false; editNames = false; done(); },
+  home()      { S.game = null; S.undo = []; confirmEnd = false; away = false; done(); },
   askEnd()    { confirmEnd = true; done(); },
   keepGoing() { confirmEnd = false; done(); },
 
@@ -595,11 +654,15 @@ const ACT = {
       const last = dealerFor(g, Math.max(0, g.hands.length - 1));
       S.setup = { kind: 'euchre', seats: g.seats.slice(), first: (last + 1) % 4, sel: null };
     }
-    S.game = null; S.undo = []; confirmEnd = false; editNames = false;
+    S.game = null; S.undo = []; confirmEnd = false; away = false; menuOn = false;
     done();
   },
 
-  delHist(d) { S.history = S.history.filter(h => h.id !== d.id); done(); }
+  delHist(d) {
+    S.history = S.history.filter(h => h.id !== d.id);
+    if (openGame === d.id) openGame = null;
+    done();
+  }
 };
 
 /* Setting up is where the two games meet: a roster, and players who are
@@ -633,8 +696,8 @@ function done(keepFocus) { save(); render(keepFocus); }
 /* ==========================================================================
    RENDER
    ========================================================================== */
-const root = document.getElementById('root');
-const sub  = document.getElementById('sub');
+const root    = document.getElementById('root');
+const menuBtn = document.getElementById('menubtn');
 
 function tableHTML(seats, opt) {
   opt = opt || {};
@@ -659,49 +722,35 @@ function tableHTML(seats, opt) {
 
 const tag = (text, live) => ({ text, live: !!live });
 
+// Somebody sitting in the game being played cannot be forgotten out from
+// under it. Their name is still theirs to correct.
+const inPlay = id => !!S.game && (S.game.players || S.game.seats).includes(id);
+
 // Editing a name is just editing the field that holds it. No rename mode, no
 // dialog, and nothing to press to make it stick.
-function nameEditor(ids, canDelete) {
+function nameEditor(ids) {
   return ids.map(id =>
     '<div class="nameRow">' +
       '<input type="text" class="nm-in" data-id="' + id + '" value="' + esc(nameOf(id)) + '" ' +
              'autocomplete="off" autocapitalize="words" enterkeyhint="done">' +
-      (canDelete ? '<button class="ghost" data-act="delPlayer" data-id="' + id + '">✕</button>' : '') +
+      '<button class="ghost" data-act="delPlayer" data-id="' + id + '"' +
+        (inPlay(id) ? ' disabled' : '') + '>✕</button>' +
     '</div>').join('');
 }
 
-// Both games hang a name-fixer off the screen you are playing on, because
-// that is where you notice the spelling is wrong.
-function fixName(ids) {
-  return editNames
-    ? '<div class="card"><div class="label" style="display:flex">Fix a name' +
-        '<span style="margin-left:auto"><button class="ghost" data-act="editNames" ' +
-        'style="font:inherit;letter-spacing:.1em;padding:0">DONE</button></span></div>' +
-        nameEditor(ids, false) + '</div>'
-    : '<button class="fixname" data-act="editNames">✎ Fix a name</button>';
-}
-
-// The roster, and the buttons under every game: the same in both.
+/* Setting a game up is picking who is playing. Correcting and forgetting live
+   in the menu, on every screen, so this screen does one thing. */
 function rosterCard(foot) {
-  let h = '<div class="card">' +
-       '<div class="label" style="display:flex">Players' +
-         (active().length ? '<span style="margin-left:auto"><button class="ghost" data-act="editRoster" ' +
-            'style="font:inherit;letter-spacing:.1em;padding:0">' +
-            (editRoster ? 'DONE' : 'EDIT') + '</button></span>' : '') +
-       '</div>' +
+  let h = '<div class="card"><div class="label">Players</div>' +
        '<div class="row" style="margin-bottom:10px">' +
          '<input type="text" id="newname" placeholder="Add a player" autocomplete="off" ' +
                 'autocapitalize="words" enterkeyhint="done" style="flex:3">' +
          '<button data-act="addPlayer" style="flex:1">Add</button>' +
        '</div>';
 
-  if (active().length && editRoster) {
-    h += nameEditor(active().slice(0, 30).map(p => p.id), true) +
-         '<div class="tiny muted">Correcting a spelling fixes it everywhere, including finished ' +
-         'games. ✕ forgets a player.</div>';
-  } else if (active().length) {
+  if (active().length) {
     h += '<div class="chips">';
-    for (const p of active().slice(0, 30)) {
+    for (const p of active().slice(0, 40)) {
       h += '<button class="' + (inGame(p.id) ? 'on' : '') +
            '" data-act="toggleRoster" data-id="' + p.id + '">' + esc(p.name) + '</button>';
     }
@@ -736,11 +785,13 @@ function midHTML(g) {
 
 function render(keepFocus) {
   const f7 = S.setup ? S.setup.kind === 'flip7' : S.game && isF7(S.game);
-  if (S.setup)     { sub.textContent = 'NEW ' + KINDS[S.setup.kind].game.toUpperCase();
-                     root.innerHTML = f7 ? viewSetup7() : viewSetup(); }
-  else if (S.game) { sub.textContent = rulesOf(S.game).game.toUpperCase();
-                     root.innerHTML = f7 ? viewGame7() : viewGame(); }
-  else             { sub.textContent = '';    root.innerHTML = viewHome(); }
+  menuBtn.textContent = menuOn ? '✕ Close' : '☰ Menu';
+  menuBtn.className   = 'menubtn' + (menuOn ? ' open' : '');
+
+  if (menuOn)                    root.innerHTML = viewMenu();
+  else if (S.setup)              root.innerHTML = f7 ? viewSetup7() : viewSetup();
+  else if (S.game && !away)      root.innerHTML = f7 ? viewGame7() : viewGame();
+  else                           root.innerHTML = viewHome();
   if (keepFocus) {
     const el = document.getElementById('newname');
     if (el) el.focus();
@@ -749,34 +800,27 @@ function render(keepFocus) {
 
 /* ---- home ---- */
 function viewHome() {
-  let h = '<div class="card"><div class="label">New game</div><div class="row">' +
-            '<button class="primary" data-act="newGame" data-kind="euchre">Bid euchre</button>' +
-            '<button class="primary" data-act="newGame" data-kind="flip7">Flip 7</button>' +
-          '</div></div>';
+  let h = '';
 
-  if (S.history.length) {
-    h += '<div class="card"><div class="label">Previous games</div>';
-    for (const g of S.history.slice(0, 12)) {
-      const s = scores(g), w = g.winner;
-      const runner = Math.max(...s.filter((_, i) => i !== w));
-      const won  = isF7(g) ? nameOf(g.players[w]) : teamName(g, w);
-      const rest = isF7(g) ? g.players.filter((_, i) => i !== w).map(nameOf).join(', ')
-                           : teamName(g, 1 - w);
-      h += '<div class="hist"><div class="txt">' +
-             '<div class="win"><span class="dot t' + (isF7(g) ? 0 : w) + '"></span> <b>' + esc(won) +
-                '</b> <span class="muted">' + fmt(s[w]) + ' to ' + fmt(runner) + '</span></div>' +
-             '<div class="tiny muted clip">' + rulesOf(g).game + ' · v ' + esc(rest) +
-                ' · ' + fmtDate(g.finished || g.started) + '</div>' +
-           '</div>' +
-           '<button data-act="again" data-id="' + g.id + '">Play again</button>' +
-           '<button class="ghost" data-act="delHist" data-id="' + g.id + '">✕</button></div>';
-    }
-    h += '</div>';
-  } else {
-    h += '<div class="card center muted tiny" style="padding:22px 16px;line-height:1.7">' +
-         '<b>Bid euchre</b> — four players, two teams, first to ' + RULES.target + '.<br>' +
-         '<b>Flip 7</b> — everyone for themselves, first to ' + FLIP7.target + '.</div>';
+  // A game stepped out of is still a game. Say where it got to, and say what
+  // starting another one would cost, rather than letting it go quietly.
+  if (S.game && away) {
+    h += '<div class="card"><div class="label">Still going</div>' +
+         '<button class="primary" style="width:100%" data-act="resume">Back to ' +
+           rulesOf(S.game).game + '</button>' +
+         '<div class="tiny muted center gap">Hand ' + (S.game.hands.length + 1) +
+           '. Starting a new game discards it.</div></div>';
   }
+
+  h += '<div class="card"><div class="label">New game</div><div class="row">' +
+          '<button class="primary" data-act="newGame" data-kind="euchre">Bid euchre</button>' +
+          '<button class="primary" data-act="newGame" data-kind="flip7">Flip 7</button>' +
+        '</div></div>' +
+       '<div class="card center muted tiny" style="padding:22px 16px;line-height:1.7">' +
+         '<b>Bid euchre</b> — four players, two teams, first to ' + RULES.target + '.<br>' +
+         '<b>Flip 7</b> — everyone for themselves, first to ' + FLIP7.target + '.' +
+         (S.history.length ? '<br>Everyone’s record is under <b>☰ Menu</b>.' : '') +
+       '</div>';
   return h;
 }
 
@@ -844,8 +888,8 @@ function viewHand(g) {
   const turn = g.bidding ? g.bidding.turn : (g.pending ? g.pending.bidder : null);
 
   const s = totals(g);
-  let h = '<div class="banner">Hand <b>' + (n + 1) + '</b> &nbsp;·&nbsp; <b>' +
-          esc(nameOf(g.seats[dealer])) + '</b> deals' +
+  let h = '<div class="banner">' + RULES.game + ' &nbsp;·&nbsp; Hand <b>' + (n + 1) +
+          '</b> &nbsp;·&nbsp; <b>' + esc(nameOf(g.seats[dealer])) + '</b> deals' +
           // Say why the game did not just end, rather than leaving the table guessing.
           (s[0] === s[1] && s[0] >= RULES.target
             ? '<br>Tied on <b>' + s[0] + '</b> — play on until one team leads'
@@ -871,8 +915,6 @@ function viewHand(g) {
       return out;
     }
   });
-
-  h += fixName(g.seats);
 
   return h + { bid: panelBid, trump: panelTrump, tricks: panelTricks }[g.phase](g);
 }
@@ -901,8 +943,7 @@ function panelBid(g) {
     h += '<button class="clip" data-act="bid" data-v="' + x.v + '"' + (x.v >= min ? '' : ' disabled') +
          '>' + x.label + ' <span class="muted tiny">' + x.v + '</span></button>';
   }
-  return h + '</div><div class="tiny muted gap center">Partner’s best and alone take all ' +
-             RULES.tricks + ' tricks or lose their value.</div></div>';
+  return h + '</div></div>';
 }
 
 function panelTrump(g) {
@@ -956,8 +997,17 @@ function viewOver(g, s) {
          'data-act="again">Play again</button></div>';
 }
 
+// The hands of a game, for the game in progress and for any game in the
+// board. Finished games were always recorded in full; now they can be read.
 function viewLog(g) {
   if (!g.hands.length) return '';
+  return '<div class="card"><details open><summary><div class="label">Hands</div></summary>' +
+         logTable(g) + '</details></div>';
+}
+
+const logTable = g => isF7(g) ? log7(g) : logEuchre(g);
+
+function logEuchre(g) {
   const run = [0, 0];
   let rows = '';
 
@@ -971,11 +1021,10 @@ function viewLog(g) {
       '<td class="r">' + h.tricks + '</td>' + cell(h.d0, 0, run[0]) + cell(h.d1, 1, run[1]) + '</tr>';
   });
 
-  return '<div class="card"><details open><summary><div class="label">Hands</div></summary>' +
-         '<table class="log"><thead><tr><th>#</th><th>Deal</th><th>Bid</th><th class="r">Tk</th>' +
+  return '<table class="log"><thead><tr><th>#</th><th>Deal</th><th>Bid</th><th class="r">Tk</th>' +
          '<th class="r"><span class="dot t0"></span></th>' +
          '<th class="r"><span class="dot t1"></span></th></tr></thead>' +
-         '<tbody>' + rows + '</tbody></table></details></div>';
+         '<tbody>' + rows + '</tbody></table>';
 }
 
 const cell = (d, t, run) =>
@@ -1023,7 +1072,7 @@ function viewGame7() {
   });
   h += '</div>';
 
-  return h + (g.done ? viewOver7(g, s) : viewHand7(g, s)) + viewLog7(g) + footer(g);
+  return h + (g.done ? viewOver7(g, s) : viewHand7(g, s)) + viewLog(g) + footer(g);
 }
 
 function viewHand7(g, s) {
@@ -1031,8 +1080,8 @@ function viewHand7(g, s) {
   const best = Math.max(...s);
   const left = g.entry.filter(e => !e).length;
 
-  let h = '<div class="banner">Hand <b>' + (n + 1) + '</b> &nbsp;·&nbsp; <b>' +
-          esc(nameOf(g.players[n % g.players.length])) + '</b> deals' +
+  let h = '<div class="banner">' + FLIP7.game + ' &nbsp;·&nbsp; Hand <b>' + (n + 1) +
+          '</b> &nbsp;·&nbsp; <b>' + esc(nameOf(g.players[n % g.players.length])) + '</b> deals' +
           // Say why the game did not just end, rather than leaving the table guessing.
           (best >= FLIP7.target && s.filter(x => x === best).length > 1
             ? '<br>Level on <b>' + best + '</b> — play on until someone leads'
@@ -1051,7 +1100,7 @@ function viewHand7(g, s) {
            '</span></button>';
     if (g.open === i) h += tally7(e);
   });
-  h += '</div>' + fixName(g.players);
+  h += '</div>';
 
   // The button carries the count, so nobody has to hunt for who was missed.
   return h + '<button class="primary" style="width:100%" data-act="scoreHand"' +
@@ -1085,9 +1134,7 @@ function tally7(e) {
 
   h += '<div class="row"><button class="' + (e.bust ? 'on' : '') + '" data-act="bust7">Busted</button>' +
        '<button data-act="next7">' + (S.game.entry.some(x => !x) ? 'Next player' : 'Done') +
-       '</button></div>' +
-       '<div class="tiny muted gap center">×2 doubles the number cards only. Freeze, Flip Three ' +
-       'and Second Chance are worth nothing.</div>';
+       '</button></div>';
   return h + '</div>';
 }
 
@@ -1117,8 +1164,7 @@ function viewOver7(g, s) {
          'data-act="again">Play again</button></div>';
 }
 
-function viewLog7(g) {
-  if (!g.hands.length) return '';
+function log7(g) {
   const run = g.players.map(() => 0);
   let rows = '';
 
@@ -1132,16 +1178,176 @@ function viewLog7(g) {
     rows += '</tr>';
   });
 
-  return '<div class="card"><details open><summary><div class="label">Hands</div></summary>' +
-         '<div style="overflow-x:auto"><table class="log"><thead><tr><th>#</th>' +
+  return '<div style="overflow-x:auto"><table class="log"><thead><tr><th>#</th>' +
          g.players.map(id => '<th class="r"><span class="who">' + esc(nameOf(id)) + '</span></th>').join('') +
-         '</tr></thead><tbody>' + rows + '</tbody></table></div></details></div>';
+         '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+/* ==========================================================================
+   THE MENU — the three things you might want from any screen. Each opens
+   where it stands rather than taking you somewhere else and back.
+   ========================================================================== */
+function viewMenu() {
+  const g = S.game;
+  const which = g ? rulesOf(g).game : S.setup ? KINDS[S.setup.kind].game : 'both games';
+
+  let h = '<div class="card">' +
+    sect('players', 'Players',    active().length + ' remembered',                     playersBody) +
+    sect('rules',   'Rules',      which,                                               rulesBody) +
+    sect('games',   'Past games', S.history.length ? S.history.length + ' finished'
+                                                   : 'none yet',                       boardBody) +
+    '</div>';
+
+  if (g && !away) {
+    h += '<button style="width:100%" data-act="stepOut">Leave this game for now</button>' +
+         '<div class="tiny muted center gap">It keeps its place. Nothing is scored or lost.</div>';
+  }
+  return h;
+}
+
+function sect(id, title, hint, body) {
+  const on = menuTab === id;
+  return '<button class="sect' + (on ? ' open' : '') + '" data-act="menuTab" data-t="' + id + '">' +
+           '<span>' + title + '</span>' +
+           '<span class="cue">' + (on ? 'close' : esc(hint)) + '</span>' +
+         '</button>' +
+         (on ? '<div class="sbody">' + body() + '</div>' : '');
+}
+
+function playersBody() {
+  if (!active().length) {
+    return '<div class="tiny muted">Nobody yet. Players are remembered as you add them ' +
+           'to a game.</div>';
+  }
+  return nameEditor(active().map(p => p.id)) +
+         '<div class="tiny muted">Correct a spelling and it is right everywhere at once, ' +
+         'including games already finished. ✕ forgets a player without touching the games ' +
+         'they played in' +
+         (S.game ? ', and cannot take anyone out of the game being played' : '') + '.</div>';
+}
+
+// On a screen that knows which game you are playing, only that game's rules.
+// On the home screen the question is which to play, so: both.
+function rulesBody() {
+  const kinds = S.game ? [kindOf(S.game)] : S.setup ? [S.setup.kind] : ['euchre', 'flip7'];
+  return kinds.map(k => {
+    const R = KINDS[k];
+    return (kinds.length > 1 ? '<div class="label" style="margin:6px 0 8px">' + R.game + '</div>' : '') +
+      '<table class="tab"><tbody>' +
+      R.rules.map(r =>
+        '<tr><td class="muted" style="vertical-align:top;white-space:nowrap">' + r[0] + '</td>' +
+            '<td style="text-align:left;padding-left:12px">' + r[1] + '</td></tr>').join('') +
+      '</tbody></table>';
+  }).join('');
+}
+
+/* ==========================================================================
+   THE BOARD — every finished game already carried its full record. This is
+   where it finally gets read.
+   ========================================================================== */
+
+// Euchre is won by a partnership, so a win counts for both partners.
+const wonBy = g => isF7(g) ? [g.players[g.winner]]
+                           : [g.seats[g.winner], g.seats[g.winner + 2]];
+const playedBy = g => isF7(g) ? g.players : g.seats;
+
+function record() {
+  const rec = {};
+  for (const g of S.history) {
+    const won = wonBy(g);
+    for (const id of playedBy(g)) {
+      const r = rec[id] = rec[id] || { id, played: 0, won: 0 };
+      r.played++;
+      if (won.includes(id)) r.won++;
+    }
+  }
+  return Object.keys(rec).map(k => rec[k])
+    .sort((a, b) => b.won - a.won || b.played - a.played ||
+                    nameOf(a.id).localeCompare(nameOf(b.id)));
+}
+
+function meetings() {
+  const m = {};
+  for (const g of S.history) {
+    const won = wonBy(g), lost = playedBy(g).filter(id => !won.includes(id));
+    for (const a of won) for (const b of lost) {
+      (m[a] = m[a] || {})[b] = ((m[a] || {})[b] || 0) + 1;
+    }
+  }
+  return m;
+}
+
+function boardBody() {
+  if (!S.history.length) {
+    return '<div class="tiny muted">Nothing here until a game is finished. Every one that is ' +
+           'keeps its whole hand-by-hand record.</div>';
+  }
+  return standingsHTML() + meetingsHTML() + gamesHTML();
+}
+
+function standingsHTML() {
+  let h = '<table class="tab"><thead><tr><th>Player</th><th>Played</th><th>Won</th>' +
+          '<th>Rate</th></tr></thead><tbody>';
+  for (const p of record()) {
+    h += '<tr><td class="who">' + esc(nameOf(p.id)) + '</td>' +
+         '<td class="muted">' + p.played + '</td>' +
+         '<td class="' + (p.won ? 'won' : 'muted') + '">' + p.won + '</td>' +
+         '<td class="muted">' + Math.round(p.won / p.played * 100) + '%</td></tr>';
+  }
+  return h + '</tbody></table>';
+}
+
+function meetingsHTML() {
+  const r = record().slice(0, 8);
+  if (r.length < 2) return '';
+  const m = meetings();
+
+  let h = '<div class="label" style="margin:22px 0 8px">Head to head</div>' +
+          '<div style="overflow-x:auto"><table class="tab h2h"><thead><tr><th></th>' +
+          r.map(p => '<th>' + esc(nameOf(p.id).slice(0, 3)) + '</th>').join('') +
+          '</tr></thead><tbody>';
+
+  for (const a of r) {
+    h += '<tr><td class="who">' + esc(nameOf(a.id)) + '</td>';
+    for (const b of r) {
+      if (a.id === b.id) { h += '<td class="self">·</td>'; continue; }
+      const w = (m[a.id] || {})[b.id] || 0, l = (m[b.id] || {})[a.id] || 0;
+      h += '<td class="' + (w > l ? 'won' : (w || l) ? 'muted' : 'self') + '">' +
+           ((w || l) ? w + '–' + l : '·') + '</td>';
+    }
+    h += '</tr>';
+  }
+  return h + '</tbody></table></div>' +
+         '<div class="tiny muted gap">Read across the row: their wins first. Partners never ' +
+         'meet each other.</div>';
+}
+
+function gamesHTML() {
+  let h = '<div class="label" style="margin:22px 0 4px">Games</div>';
+  for (const g of S.history.slice(0, 40)) {
+    const s = scores(g), w = g.winner;
+    const runner = Math.max(...s.filter((_, i) => i !== w));
+    const won  = isF7(g) ? nameOf(g.players[w]) : teamName(g, w);
+    const rest = isF7(g) ? g.players.filter((_, i) => i !== w).map(nameOf).join(', ')
+                         : teamName(g, 1 - w);
+    h += '<div class="hist">' +
+           '<button class="txt" data-act="openGame" data-id="' + g.id + '">' +
+             '<div class="win"><span class="dot t' + (isF7(g) ? 0 : w) + '"></span> <b>' + esc(won) +
+               '</b> <span class="muted">' + fmt(s[w]) + ' to ' + fmt(runner) + '</span></div>' +
+             '<div class="tiny muted clip">' + rulesOf(g).game + ' · v ' + esc(rest) + ' · ' +
+               fmtDate(g.finished || g.started) + ' · ' + g.hands.length + ' hands</div>' +
+           '</button>' +
+           '<button data-act="again" data-id="' + g.id + '">Play again</button>' +
+           '<button class="ghost" data-act="delHist" data-id="' + g.id + '">✕</button></div>' +
+         (openGame === g.id ? '<div class="sbody">' + logTable(g) + '</div>' : '');
+  }
+  return h;
 }
 
 /* ==========================================================================
    EVENTS
    ========================================================================== */
-root.addEventListener('click', e => {
+document.body.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
   const fn = ACT[el.dataset.act];
