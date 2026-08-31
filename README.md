@@ -102,6 +102,27 @@ Everyone for themselves, as many players as are round the table, first to 200.
    sitting in front of them. Their score appears as you go. Move on to the next player,
    and when everyone is done, **Score the hand**.
 
+### Whose deal, and who starts
+
+Above the tally: *Hand 3 · Ray deals · first card to Bea*. That second half is the thing
+a distracted table actually loses, and it is the only thing the app knows about a hand in
+progress — nobody has to tell it about each card as it lands.
+
+**✎ Seating** under it opens the order. Drag anyone up or down to put it right when two
+people swap chairs. **✕** takes a player out of a game in progress and **+ name** puts one
+in: people turn up late and people give up. A hand records what each player scored against
+that player rather than against their place in the list, so a hand played before somebody
+joined, or after they left, still says exactly who scored what. A leaver keeps everything
+they scored and stays on the final board; a joiner starts from the next hand. Come back
+later and you pick up the score you left with.
+
+### Not watching the score
+
+The running totals are behind **Scores** at the top, closed by default. Knowing exactly
+where everyone stands changes how the cards get played, and the question during a hand is
+whose turn it is, not who is winning. A finished game shows them without being asked —
+then it is the whole point.
+
 ### The tally
 
 Tapping a card is the whole interaction. Every card is a toggle, so a mis-tap is fixed

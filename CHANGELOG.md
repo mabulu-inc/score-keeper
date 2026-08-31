@@ -7,6 +7,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Flip 7 says **who gets the first card**, not just who deals — the thing a distracted
+  table actually loses. It is still all the app knows about a hand in progress: nobody has
+  to tell it about each card as it lands.
+- **✎ Seating** on a Flip 7 game opens the order. Drag anyone up or down to put it right
+  when two people swap chairs.
+- **Players can join and leave a game already under way.** ✕ takes somebody out, + name
+  puts somebody in. A leaver keeps every hand they scored and stays on the final board; a
+  joiner starts from the next hand; somebody who leaves and comes back picks up the score
+  they left with.
+- The Flip 7 **running totals are closed by default**, behind *Scores* at the top. Knowing
+  exactly where everyone stands changes how the cards get played, and the question during a
+  hand is whose turn it is. A finished game shows them without being asked.
+
 - **☰ Menu** in the header, on every screen, holding the three things you might want
   without leaving the game in front of you. Each section opens where it stands rather
   than taking you somewhere else and back.

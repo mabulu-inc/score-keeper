@@ -222,6 +222,18 @@
   .tot .ex { font-size: 12px; color: var(--muted); margin-top: 5px; }
   .tot .ex b { color: var(--accent); font-weight: 600; }
 
+  /* --- flip 7: the seating order, which can be dragged about --- */
+  .order .ord { display: flex; align-items: center; gap: 10px; padding: 11px 4px;
+                position: relative; background: var(--panel);
+                border-top: 1px solid var(--line); touch-action: none; cursor: grab; }
+  .order .ord .nm { flex: 1; min-width: 0;
+                    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .order .ord .cue { color: var(--muted); font-size: 12px; }
+  .order .ord.lift { z-index: 5; cursor: grabbing; border-radius: 10px;
+                     box-shadow: 0 12px 26px rgba(0, 0, 0, .55); }
+  .seating { display: block; width: 100%; background: none; border: none;
+             color: var(--muted); font-size: 12px; padding: 0 0 12px; margin-top: -6px; }
+
   /* --- flip 7: standings, and the row per player while tallying --- */
   .rank, .ent { display: flex; align-items: center; gap: 10px; padding: 10px 2px; }
   .rank .nm, .ent .nm { flex: 1; min-width: 0;
@@ -389,7 +401,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v21';                       // bump together with CACHE in sw.js
+const BUILD = 'v23';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -422,6 +434,19 @@ let S;
 try { S = Object.assign(blank(), JSON.parse(localStorage.getItem(LS)) || {}); }
 catch (e) { S = blank(); }
 if (S.setup && !S.setup.kind) S.setup.kind = 'euchre';   // a table set before Flip 7
+
+// Flip 7 hands used to be lists, one score per seat. Re-key them against the
+// players they belonged to, so a game in progress survives people coming and
+// going from here on.
+for (const g of [S.game].concat(S.history)) {
+  if (!g || !isF7(g)) continue;
+  for (const h of g.hands) {
+    if (!Array.isArray(h.pts)) continue;
+    const pts = {}, seven = {};
+    g.players.forEach((id, i) => { pts[id] = h.pts[i] || 0; seven[id] = !!(h.seven && h.seven[i]); });
+    h.pts = pts; h.seven = seven;
+  }
+}
 try { localStorage.removeItem('score-keeper-back'); } catch (e) {}   // an old diagnostic
 
 const save = () => { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} };
@@ -433,6 +458,8 @@ let menuTab    = null;       // 'players' | 'rules' | 'games' — the section op
 let openGame   = null;       // id of the finished game whose hands are unfolded
 let rulesKind  = null;       // game whose rules are showing, when it is not the obvious one
 let confirmLeave = false;    // back was pressed with nowhere left to go
+let showScores = false;      // the running totals, which are not on show by default
+let editSeating = false;     // the seating order, open for changing
 let away       = false;      // stepped out of a game in progress without ending it
 
 const nameOf = id => (S.roster.find(p => p.id === id) || {}).name || '?';
@@ -462,10 +489,21 @@ function totals(g) {
   return s;
 }
 
-function f7Totals(g) {
-  const s = g.players.map(() => 0);
-  for (const h of g.hands) h.pts.forEach((p, i) => { s[i] += p; });
-  return s;
+/* A hand records what each player scored against that player, not against
+   their place in the list. People join a game late and leave part way through,
+   and a hand played before either happened still has to say who scored what. */
+function f7Totals(g, who) {
+  return (who || g.players).map(id =>
+    g.hands.reduce((t, h) => t + (h.pts[id] || 0), 0));
+}
+
+// Everyone the game has ever counted, in seating order, leavers on the end.
+function everyone(g) {
+  const seen = g.players.slice();
+  for (const h of g.hands) {
+    for (const id in h.pts) if (seen.indexOf(id) < 0) seen.push(id);
+  }
+  return seen;
 }
 
 const scores = g => isF7(g) ? f7Totals(g) : totals(g);
@@ -681,7 +719,9 @@ const ACT = {
     const g = S.game;
     if (g.entry.some(e => !e)) return;
     push();
-    g.hands.push({ pts: g.entry.map(e => FLIP7.score(e)), seven: g.entry.map(flipped) });
+    const pts = {}, seven = {};
+    g.players.forEach((id, i) => { pts[id] = FLIP7.score(g.entry[i]); seven[id] = flipped(g.entry[i]); });
+    g.hands.push({ pts, seven });
     g.entry = g.players.map(() => null);
     g.open = null;
     finish(g);
@@ -702,6 +742,28 @@ const ACT = {
   askEnd()    { confirmEnd = true; done(); },
   keepGoing() { confirmEnd = false; done(); },
   stay()      { confirmLeave = false; done(); },
+  scores()    { showScores = !showScores; done(); },
+  seating()   { editSeating = !editSeating; done(); },
+
+  /* People arrive late and drop out part way through. A hand already scored
+     keeps whatever it recorded, because it is keyed to the player and not to
+     a place in the list, so neither of these disturbs the game behind them. */
+  sitDown(d) {
+    const g = S.game;
+    if (g.players.indexOf(d.id) < 0) { g.players.push(d.id); g.entry.push(null); }
+    done();
+  },
+
+  standUp(d) {
+    const g = S.game;
+    const i = g.players.indexOf(d.id);
+    if (i < 0 || g.players.length <= FLIP7.min) return;
+    g.players.splice(i, 1);
+    g.entry.splice(i, 1);
+    if (g.open === i) g.open = null;
+    else if (g.open > i) g.open--;
+    done();
+  },
   reload()    { location.reload(); },
 
   again(d) {
@@ -1188,24 +1250,35 @@ function viewSetup7() {
         (n >= FLIP7.min ? '' : ' disabled') + '>Start game</button></div>';
 }
 
+/* The running totals are not on show while a hand is being played. Knowing
+   exactly where everyone stands changes how the cards get played, and the
+   question at the table during a hand is whose turn it is, not who is winning.
+   A finished game is a different matter: then it is the whole point. */
 function viewGame7() {
-  const g = S.game, s = f7Totals(g), best = Math.max(...s);
+  const g = S.game, s = f7Totals(g);
+  const open = showScores || g.done;
 
-  let h = '<div class="card">';
-  g.players.map((id, i) => ({ id, i, pts: s[i] }))
-           .sort((a, b) => b.pts - a.pts || a.i - b.i)
-           .forEach(r => {
-    // Nobody leads a game nobody has scored in yet.
-    h += '<div class="rank' + (best > 0 && r.pts === best ? ' lead' : '') +
-           '" data-p="' + r.id + '">' +
-           '<div class="nm">' + esc(nameOf(r.id)) + '</div>' +
-           '<div class="bar"><i style="width:' +
-             Math.max(0, Math.min(100, r.pts / FLIP7.target * 100)) + '%"></i></div>' +
-           '<div class="pts">' + fmt(r.pts) + '</div></div>';
-  });
-  h += '</div>';
+  let h = '<div class="card">' +
+    (g.done ? '' :
+      '<button class="sect" data-act="scores" style="border-top:none">' +
+        '<span>Scores</span><span class="cue">' + (open ? 'hide' : 'show') + '</span></button>') +
+    (open ? standings(g, s) : '') + '</div>';
 
   return h + (g.done ? viewOver7(g, s) : viewHand7(g, s)) + viewLog(g) + footer(g);
+}
+
+function standings(g, s) {
+  const best = Math.max(...s);
+  return g.players.map((id, i) => ({ id, i, pts: s[i] }))
+    .sort((a, b) => b.pts - a.pts || a.i - b.i)
+    .map(r =>
+      // Nobody leads a game nobody has scored in yet.
+      '<div class="rank' + (best > 0 && r.pts === best ? ' lead' : '') +
+        '" data-p="' + r.id + '">' +
+        '<div class="nm">' + esc(nameOf(r.id)) + '</div>' +
+        '<div class="bar"><i style="width:' +
+          Math.max(0, Math.min(100, r.pts / FLIP7.target * 100)) + '%"></i></div>' +
+        '<div class="pts">' + fmt(r.pts) + '</div></div>').join('');
 }
 
 function viewHand7(g, s) {
@@ -1213,14 +1286,18 @@ function viewHand7(g, s) {
   const best = Math.max(...s);
   const left = g.entry.filter(e => !e).length;
 
+  const deals = n % g.players.length;
   let h = '<div class="banner">' + FLIP7.game + ' &nbsp;·&nbsp; Hand <b>' + (n + 1) +
-          '</b> &nbsp;·&nbsp; <b>' + esc(nameOf(g.players[n % g.players.length])) + '</b> deals' +
+          '</b> &nbsp;·&nbsp; <b>' + esc(nameOf(g.players[deals])) + '</b> deals' +
+          '<br>first card to <b>' +
+            esc(nameOf(g.players[(deals + 1) % g.players.length])) + '</b>' +
           // Say why the game did not just end, rather than leaving the table guessing.
           (best >= FLIP7.target && s.filter(x => x === best).length > 1
             ? '<br>Level on <b>' + best + '</b> — play on until someone leads'
             : '') +
           '</div>';
 
+  h += seatingPanel(g, deals);
   h += '<div class="card"><div class="label">Tally the hand</div>';
   g.players.forEach((id, i) => {
     const e = g.entry[i];
@@ -1239,6 +1316,44 @@ function viewHand7(g, s) {
   return h + '<button class="primary" style="width:100%" data-act="scoreHand"' +
              (left ? ' disabled' : '') + '>' +
              (left ? left + ' still to tally' : 'Score the hand') + '</button>';
+}
+
+/* Who is sitting where, and who is still coming and going. The order is a
+   ring the deal walks round, so it is worth being able to fix when two people
+   swap chairs, and worth being able to add to and take from mid-game: people
+   turn up late and people give up. */
+function seatingPanel(g, deals) {
+  if (!editSeating) {
+    return '<button class="seating" data-act="seating">✎ Seating &nbsp;·&nbsp; ' +
+           g.players.map(id => esc(nameOf(id))).join(' → ') + '</button>';
+  }
+
+  const spare = active().filter(p => g.players.indexOf(p.id) < 0);
+
+  let h = '<div class="card"><div class="label" style="display:flex">Seating' +
+            '<span style="margin-left:auto"><button class="ghost" data-act="seating" ' +
+            'style="font:inherit;letter-spacing:.1em;padding:0">DONE</button></span></div>' +
+          '<div class="order">';
+
+  g.players.forEach((id, i) => {
+    h += '<div class="ord" data-i="' + i + '" data-p="' + id + '">' +
+           '<span class="nm">' + esc(nameOf(id)) + '</span>' +
+           '<span class="cue">' + (i === deals ? 'deals this hand' : '') + '</span>' +
+           '<button class="ghost" data-act="standUp" data-id="' + id + '"' +
+             (g.players.length <= FLIP7.min ? ' disabled' : '') + '>✕</button>' +
+         '</div>';
+  });
+  h += '</div>';
+
+  if (spare.length) {
+    h += '<div class="chips gap">' + spare.map(p =>
+           '<button data-act="sitDown" data-id="' + p.id + '">+ ' + esc(p.name) + '</button>').join('') +
+         '</div>';
+  }
+
+  return h + '<div class="tiny muted gap">Drag anyone up or down to put the order right. ' +
+         '✕ takes a player out of the game and keeps every hand they have already scored; ' +
+         'anyone added starts from the next hand.</div></div>';
 }
 
 /* Tap what is in front of them. Every card is a toggle, so a mis-tap is
@@ -1298,21 +1413,25 @@ function viewOver7(g, s) {
 }
 
 function log7(g) {
-  const run = g.players.map(() => 0);
+  const all = everyone(g);
+  const run = {};
   let rows = '';
 
   g.hands.forEach((h, i) => {
     rows += '<tr><td class="muted">' + (i + 1) + '</td>';
-    h.pts.forEach((p, j) => {
-      run[j] += p;
-      rows += '<td class="r"><span class="' + (h.seven && h.seven[j] ? 'd0' : '') + '">' + fmt(p) +
-              '</span><br><span class="run">' + fmt(run[j]) + '</span></td>';
-    });
+    for (const id of all) {
+      // A hand played before somebody joined, or after they left, is blank for
+      // them rather than nought — they were not there to score nothing.
+      if (!(id in h.pts)) { rows += '<td class="r muted">·</td>'; continue; }
+      run[id] = (run[id] || 0) + h.pts[id];
+      rows += '<td class="r"><span class="' + (h.seven && h.seven[id] ? 'd0' : '') + '">' +
+              fmt(h.pts[id]) + '</span><br><span class="run">' + fmt(run[id]) + '</span></td>';
+    }
     rows += '</tr>';
   });
 
   return '<div style="overflow-x:auto"><table class="log"><thead><tr><th>#</th>' +
-         g.players.map(id => '<th class="r"><span class="who">' + esc(nameOf(id)) + '</span></th>').join('') +
+         all.map(id => '<th class="r"><span class="who">' + esc(nameOf(id)) + '</span></th>').join('') +
          '</tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 
@@ -1525,6 +1644,24 @@ document.body.addEventListener('click', e => {
    ========================================================================== */
 let drag = null;
 
+/* The seating list is a list, not a ring: dragging somebody up the order puts
+   them there and everyone they passed moves down one. Nothing wraps round. */
+function planOrder(from, to) {
+  const map = S.game.players.map((_, i) => i);
+  if (from === to) return map;
+  const order = map.slice();
+  order.splice(to, 0, order.splice(from, 1)[0]);
+  order.forEach((was, now) => { map[was] = now; });
+  return map;
+}
+
+function applyOrder(from, to) {
+  const g = S.game, map = planOrder(from, to);
+  const players = g.players.slice(), entry = g.entry.slice();
+  map.forEach((now, old) => { g.players[now] = players[old]; g.entry[now] = entry[old]; });
+  if (g.open !== null) g.open = map[g.open];
+}
+
 /* Where everyone ends up if the player being carried is let go over chair `to`.
    Returns the new seat for each current seat, so one description drives both
    the preview and the change itself and they cannot drift apart.
@@ -1586,20 +1723,31 @@ function chairAt(drag, x, y) {
   return !best || best.el === drag.el ? null : best.el;
 }
 
+/* Two things can be dragged and they rearrange differently: the chairs are a
+   ring, the seating order is a list. Everything else about the gesture —
+   lifting the tile, showing the rearrangement, committing it on the drop — is
+   the same, so it is written once and told which one it has hold of. */
+const DRAGGABLE = [
+  { pick: '.table.move .seat', held: i => S.setup && S.setup.seats[i],
+    plan: (f, t) => planSeats(f, t), commit: (f, t) => applyMove(f, t) },
+  { pick: '.order .ord',       held: () => true,
+    plan: (f, t) => planOrder(f, t), commit: (f, t) => applyOrder(f, t) }
+];
+
 root.addEventListener('pointerdown', e => {
-  if (!S.setup || S.setup.kind !== 'euchre') return;
   if (e.target.closest('[data-act]')) return;          // the ✕ is not a handle
-  const el = e.target.closest('.table.move .seat');
-  if (!el || !S.setup.seats[+el.dataset.i]) return;    // empty chairs stay put
+  const kind = DRAGGABLE.find(k => e.target.closest(k.pick));
+  const el = kind && e.target.closest(kind.pick);
+  if (!el || !kind.held(+el.dataset.i)) return;        // empty chairs stay put
 
   const card = el.closest('.card').getBoundingClientRect();
-  drag = { el, i: +el.dataset.i, x: e.clientX, y: e.clientY, onto: null,
+  drag = { el, kind, i: +el.dataset.i, x: e.clientX, y: e.clientY, onto: null,
            chairs: [], homes: [],
            table: { l: card.left, t: card.top, r: card.right, b: card.bottom } };
-  for (const seat of root.querySelectorAll('.table.move .seat')) {
-    const r = seat.getBoundingClientRect();
-    drag.homes[+seat.dataset.i] = { x: seat.offsetLeft, y: seat.offsetTop };
-    drag.chairs.push({ el: seat, x: r.left + r.width / 2, y: r.top + r.height / 2 });
+  for (const tile of root.querySelectorAll(kind.pick)) {
+    const r = tile.getBoundingClientRect();
+    drag.homes[+tile.dataset.i] = { x: tile.offsetLeft, y: tile.offsetTop };
+    drag.chairs.push({ el: tile, x: r.left + r.width / 2, y: r.top + r.height / 2 });
   }
   // Capture keeps the moves coming when the finger strays off the tile. If it
   // is refused the drag still works, because the listeners are on the window.
@@ -1624,7 +1772,7 @@ root.addEventListener('pointermove', e => {
    you would get is the seating you are looking at, so there is nothing to
    ring or label — the gap is the invitation. */
 function openASeat() {
-  const map = drag.onto ? planSeats(drag.i, +drag.onto.dataset.i) : null;
+  const map = drag.onto ? drag.kind.plan(drag.i, +drag.onto.dataset.i) : null;
 
   for (const c of drag.chairs) {
     const here = +c.el.dataset.i;
@@ -1638,13 +1786,13 @@ function openASeat() {
 
 function drop() {
   if (!drag) return;
-  const { el, i, onto } = drag;
+  const { el, i, onto, kind } = drag;
   drag = null;
 
   if (onto) {
     // The tiles are left exactly where they look, and the render that follows
     // carries them on from there rather than putting them back first.
-    applyMove(i, +onto.dataset.i);
+    kind.commit(i, +onto.dataset.i);
     done();
     return;
   }
