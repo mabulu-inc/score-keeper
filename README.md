@@ -109,7 +109,7 @@ Above the tally: *Hand 3 · Ray deals · first card to Bea*. That second half is
 a distracted table actually loses, and it is the only thing the app knows about a hand in
 progress — nobody has to tell it about each card as it lands.
 
-**✎ Seating** under it opens the order. Drag anyone up or down to put it right when two
+**Seating**, in the same card as **Scores** at the top, opens the order. Drag anyone up or down to put it right when two
 people swap chairs. **✕** takes a player out of a game in progress and **+ name** puts one
 in: people turn up late and people give up. A hand records what each player scored against
 that player rather than against their place in the list, so a hand played before somebody

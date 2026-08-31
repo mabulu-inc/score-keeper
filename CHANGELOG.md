@@ -17,7 +17,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   prose you could read but not change. Getting the order right no longer means removing
   people and tapping them back in one at a time — and it is the same list, and the same
   drag, that the game itself uses.
-- **✎ Seating** on a Flip 7 game opens the order. Drag anyone up or down to put it right
+- **Seating** sits beside **Scores** at the top of a Flip 7 game, as a row with the order
+  written on the right of it. It was a muted line under the banner, which read as a caption
+  rather than something you could press, and went unfound. It opens the order. Drag anyone up or down to put it right
   when two people swap chairs.
 - **Players can join and leave a game already under way.** ✕ takes somebody out, + name
   puts somebody in. A leaver keeps every hand they scored and stays on the final board; a

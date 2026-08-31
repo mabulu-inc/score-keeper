@@ -231,8 +231,6 @@
   .order .ord .cue { color: var(--muted); font-size: 12px; }
   .order .ord.lift { z-index: 5; cursor: grabbing; border-radius: 10px;
                      box-shadow: 0 12px 26px rgba(0, 0, 0, .55); }
-  .seating { display: block; width: 100%; background: none; border: none;
-             color: var(--muted); font-size: 12px; padding: 0 0 12px; margin-top: -6px; }
 
   /* --- flip 7: standings, and the row per player while tallying --- */
   .rank, .ent { display: flex; align-items: center; gap: 10px; padding: 10px 2px; }
@@ -401,7 +399,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v25';                       // bump together with CACHE in sw.js
+const BUILD = 'v26';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -1268,11 +1266,24 @@ function viewGame7() {
   const g = S.game, s = f7Totals(g);
   const open = showScores || g.done;
 
-  let h = '<div class="card">' +
-    (g.done ? '' :
-      '<button class="sect" data-act="scores" style="border-top:none">' +
-        '<span>Scores</span><span class="cue">' + (open ? 'hide' : 'show') + '</span></button>') +
-    (open ? standings(g, s) : '') + '</div>';
+  const deals = g.hands.length % g.players.length;
+
+  let h = '<div class="card">';
+  if (g.done) {
+    h += standings(g, s);
+  } else {
+    // Both of these are things you reach for mid-game, so they look alike and
+    // sit together. A row with a word on the right of it is a control; the
+    // muted line this used to be read as a caption and went unfound.
+    h += '<button class="sect" data-act="scores" style="border-top:none">' +
+           '<span>Scores</span><span class="cue">' + (open ? 'hide' : 'show') + '</span></button>' +
+         (open ? standings(g, s) : '') +
+         '<button class="sect" data-act="seating"><span>Seating</span>' +
+           '<span class="cue">' + (editSeating ? 'done'
+             : esc(g.players.map(nameOf).join(' → '))) + '</span></button>' +
+         (editSeating ? seatingRows(g, deals) : '');
+  }
+  h += '</div>';
 
   return h + (g.done ? viewOver7(g, s) : viewHand7(g, s)) + viewLog(g) + footer(g);
 }
@@ -1307,7 +1318,6 @@ function viewHand7(g, s) {
             : '') +
           '</div>';
 
-  h += seatingPanel(g, deals);
   h += '<div class="card"><div class="label">Tally the hand</div>';
   g.players.forEach((id, i) => {
     const e = g.entry[i];
@@ -1342,18 +1352,10 @@ function orderRows(ids, cue, act, locked) {
     '</div>').join('') + '</div>';
 }
 
-function seatingPanel(g, deals) {
-  if (!editSeating) {
-    return '<button class="seating" data-act="seating">✎ Seating &nbsp;·&nbsp; ' +
-           g.players.map(id => esc(nameOf(id))).join(' → ') + '</button>';
-  }
-
+function seatingRows(g, deals) {
   const spare = active().filter(p => g.players.indexOf(p.id) < 0);
 
-  let h = '<div class="card"><div class="label" style="display:flex">Seating' +
-            '<span style="margin-left:auto"><button class="ghost" data-act="seating" ' +
-            'style="font:inherit;letter-spacing:.1em;padding:0">DONE</button></span></div>' +
-          orderRows(g.players, i => i === deals ? 'deals this hand' : '',
+  let h = orderRows(g.players, i => i === deals ? 'deals this hand' : '',
                     'standUp', g.players.length <= FLIP7.min);
 
   if (spare.length) {
@@ -1364,7 +1366,7 @@ function seatingPanel(g, deals) {
 
   return h + '<div class="tiny muted gap">Drag anyone up or down to put the order right. ' +
          '✕ takes a player out of the game and keeps every hand they have already scored; ' +
-         'anyone added starts from the next hand.</div></div>';
+         'anyone added starts from the next hand.</div>';
 }
 
 /* Tap what is in front of them. Every card is a toggle, so a mis-tap is
