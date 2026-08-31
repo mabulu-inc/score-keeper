@@ -35,9 +35,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Seating is now done by **dragging a player to the chair you want them in**, rather than
   tapping one seat and then another. Nobody is traded for: the players in between shuffle
   along by one and a chair opens up under your finger, so the seating you would get is the
-  seating you are looking at while you decide. Carrying someone right round the table moves
-  everybody; one chair over moves one. Letting go anywhere else sits them all back down,
-  and an empty chair is already open so nobody moves for it.
+  seating you are looking at while you decide. The chairs are a ring, so the shuffle takes
+  the shorter way round: a chair along moves one person, straight across moves two, and
+  nothing moves three. The chair you are nearest is the chair you mean, so aiming at one
+  counts well before you arrive; carrying somebody off the table, or back where they
+  started, moves nobody.
 - The standings re-sort in front of you when a hand is scored, so a player coming from
   last to first is something you watch happen rather than something you find already done.
   It is the one number movement in the app that carries information.

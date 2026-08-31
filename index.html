@@ -389,7 +389,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v19';                       // bump together with CACHE in sw.js
+const BUILD = 'v20';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -1532,16 +1532,28 @@ let drag = null;
    Returns the new seat for each current seat, so one description drives both
    the preview and the change itself and they cannot drift apart.
 
-   An occupied chair is not traded for: the players between shuffle along by
-   one and open a place. An empty chair is already open, so it simply changes
-   hands with the one being left. */
+   The chairs are a ring, not a list: south and east sit next to each other
+   just as much as south and west do. So the shuffle walks the shorter way
+   round the table from the chair being taken back to the chair being left,
+   and everyone standing on that arc shifts along one to close it up. Taking
+   somebody to the chair beside them moves one person; taking them straight
+   across moves two. There is no way to move three.
+
+   Opposite chairs are the same distance either way round. That tie goes
+   anticlockwise, so carrying the east player over to the west sends west down
+   to south and south round to east, leaving north out of it. */
 function planSeats(from, to) {
-  const map = [0, 1, 2, 3];
+  const ring = S.setup.seats.length;
+  const map = S.setup.seats.map((_, i) => i);
+  if (from === to) return map;
   if (!S.setup.seats[to]) { map[from] = to; map[to] = from; return map; }
 
-  const order = [0, 1, 2, 3];
-  order.splice(to, 0, order.splice(from, 1)[0]);
-  order.forEach((was, now) => { map[was] = now; });
+  const ahead = (from - to + ring) % ring;
+  const step  = ahead < ring - ahead ? 1 : -1;
+  for (let k = to; k !== from; k = (k + step + ring) % ring) {
+    map[k] = (k + step + ring) % ring;
+  }
+  map[from] = to;
   return map;
 }
 
@@ -1550,15 +1562,31 @@ function applyMove(from, to) {
   planSeats(from, to).forEach((now, old) => { S.setup.seats[now] = was[old]; });
 }
 
-/* The chair under the finger. Measured once when the drag starts, because a
-   player who has stood up takes their tile with them — and hit-testing where
-   the tile is now would mean they left the chair, so they sit back down, so
-   they are under the finger again. The chairs themselves never move. */
-function chairAt(chairs, x, y) {
-  for (const c of chairs) {
-    if (x >= c.l && x <= c.r && y >= c.t && y <= c.b) return c.el;
+/* The chair the finger is nearest, so long as it is still over the table.
+
+   Nearest rather than inside: the chairs are small, with gaps between them and
+   a hole in the middle, so asking anyone to land within one would leave most
+   directions from most chairs doing nothing at all. Head north and you mean
+   the north chair, wherever exactly you stop.
+
+   Their positions are taken once, when the drag starts, because a player who
+   has stood up takes their tile with them — measuring where the tile is now
+   would mean they had left the chair, so they would sit back down, so they
+   would be nearest again, at the frame rate.
+
+   Your own chair counts, and means no change: carry somebody a little way and
+   think better of it. Off the table means the same, and is how you call the
+   whole thing off. */
+function chairAt(drag, x, y) {
+  const t = drag.table;
+  if (x < t.l || x > t.r || y < t.t || y > t.b) return null;
+
+  let best = null, nearest = Infinity;
+  for (const c of drag.chairs) {
+    const d = (c.x - x) * (c.x - x) + (c.y - y) * (c.y - y);
+    if (d < nearest) { nearest = d; best = c; }
   }
-  return null;
+  return !best || best.el === drag.el ? null : best.el;
 }
 
 root.addEventListener('pointerdown', e => {
@@ -1567,12 +1595,14 @@ root.addEventListener('pointerdown', e => {
   const el = e.target.closest('.table.move .seat');
   if (!el || !S.setup.seats[+el.dataset.i]) return;    // empty chairs stay put
 
-  drag = { el, i: +el.dataset.i, x: e.clientX, y: e.clientY, onto: null, chairs: [], homes: [] };
+  const card = el.closest('.card').getBoundingClientRect();
+  drag = { el, i: +el.dataset.i, x: e.clientX, y: e.clientY, onto: null,
+           chairs: [], homes: [],
+           table: { l: card.left, t: card.top, r: card.right, b: card.bottom } };
   for (const seat of root.querySelectorAll('.table.move .seat')) {
-    drag.homes[+seat.dataset.i] = { x: seat.offsetLeft, y: seat.offsetTop };
-    if (seat === el) continue;                 // your own chair is not a target
     const r = seat.getBoundingClientRect();
-    drag.chairs.push({ el: seat, l: r.left, t: r.top, r: r.right, b: r.bottom });
+    drag.homes[+seat.dataset.i] = { x: seat.offsetLeft, y: seat.offsetTop };
+    drag.chairs.push({ el: seat, x: r.left + r.width / 2, y: r.top + r.height / 2 });
   }
   // Capture keeps the moves coming when the finger strays off the tile. If it
   // is refused the drag still works, because the listeners are on the window.
@@ -1586,7 +1616,7 @@ root.addEventListener('pointermove', e => {
   drag.el.style.transform =
     'translate(' + (e.clientX - drag.x) + 'px,' + (e.clientY - drag.y) + 'px)';
 
-  const onto = chairAt(drag.chairs, e.clientX, e.clientY);
+  const onto = chairAt(drag, e.clientX, e.clientY);
   if (onto === drag.onto) return;
   drag.onto = onto;
   openASeat();

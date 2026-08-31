@@ -22,10 +22,15 @@ Four players, two teams, first to 40.
 2. **Seat them.** Partners sit opposite each other on the diagram. **Drag a player to the
    chair you want them in.** Nobody is traded: the players in between shuffle along by one
    and a chair opens up under your finger, so the seating you'd get is the seating you're
-   looking at while you decide. Carrying someone right round the table moves everybody;
-   one chair over moves one. Let go anywhere else and they all sit back down. An empty
-   chair is already open, so nobody has to move for it. Pick who deals first; after that
-   the deal moves clockwise on its own.
+   looking at while you decide.
+
+   The chairs are a ring, so the shuffle takes the shorter way round. Moving somebody to
+   the chair beside them moves one person; straight across the table moves two. It can
+   never move three. Aim rather than land — the chair you're nearest is the chair you
+   mean, so a drag toward one counts well before you get there. Carry them off the table,
+   or back to where they started, and nobody moves at all.
+
+   Pick who deals first; after that the deal moves clockwise on its own.
 3. **Play.** Each hand is three taps in a row: the bidding, the trump, and how many
    tricks the bidding team took. The score does itself.
 
