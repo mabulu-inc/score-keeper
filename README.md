@@ -191,10 +191,15 @@ The back button moves **within** the app, not out of it. Each press closes one t
 innermost first:
 
 ```
- a past game's hands  →  the menu section  →  the menu  →  home
- the setup screen     →  home
- a game in progress   →  home, with the game kept
+ the menu, from anywhere in it  →  whatever you were doing
+ a past game's hands            →  the menu it was opened from
+ the setup screen               →  home
+ a game in progress             →  home, with the game kept
 ```
+
+**The menu closes as a unit.** It is somewhere you pass through, not somewhere you were,
+so backing out of *Players* returns you to your game rather than to the menu list. Back
+and **✕ Close** do the same thing — the menu has one exit, not two.
 
 Backing out of a game is the same as *Leave this game for now* — it keeps its place, it
 does not end it.

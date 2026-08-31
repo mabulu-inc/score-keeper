@@ -23,6 +23,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   played — games, wins and win rate, with a euchre win counting for both partners — a head
   to head grid, and every finished game openable to its full hand-by-hand log, exactly as
   it looked when it ended.
+- The menu closes as a unit when you back out of it. It is somewhere you pass through,
+  not somewhere you were, so leaving *Players* puts you back in your game rather than in
+  front of the menu list again — and Back now does exactly what ✕ Close does, giving the
+  menu one exit instead of two.
 - **The back button now navigates inside the app** instead of closing it on the first
   press. Each press closes one thing, innermost first: an unfolded past game, then the
   menu section, then the menu, then back to home — and from the setup screen or a game in

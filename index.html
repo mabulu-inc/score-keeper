@@ -364,7 +364,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v11';                       // bump together with CACHE in sw.js
+const BUILD = 'v12';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -1447,9 +1447,11 @@ document.body.addEventListener('click', e => {
    bookkeeping here at all.
    ========================================================================== */
 function stepBack() {
+  // The menu is somewhere you pass through, not somewhere you were, so it
+  // closes as a unit: Back out of Players and you are back at your game, not
+  // looking at the menu list again. Back and ✕ Close now do the same thing.
   if (openGame)        { openGame = null;                          return true; }
-  if (menuTab)         { menuTab = null;  rulesKind = null;        return true; }
-  if (menuOn)          { menuOn = false;                           return true; }
+  if (menuOn)          { menuOn = false; menuTab = null; rulesKind = null; return true; }
   if (S.setup)         { S.setup = null;                           return true; }
   if (S.game && !away) { away = true; confirmEnd = false;          return true; }
   return false;                      // home, with nothing above it to close
