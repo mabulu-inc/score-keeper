@@ -67,7 +67,7 @@ Six tricks in a hand. First team to **40** wins.
 
 | Bid | Made | Set |
 |---|---|---|
-| 3, 4 or 5 | every trick taken, overtricks included | minus the bid |
+| 3, 4 or 5 | every trick taken, overtricks included | your score docked by the bid: **−3**, **−4** or **−5** |
 | Partner's best (12) | all six tricks: **+12** | **−12** |
 | Alone (24) | all six tricks: **+24** | **−24** |
 
@@ -157,8 +157,9 @@ still theirs to correct.
 
 ### Rules
 
-A reminder, not the rulebook — deliberately only the things the screen doesn't already
-say. The trick buttons and the Flip 7 tally show you the arithmetic as you play, so the
+Every game explains itself, and the app refuses to start if one doesn't — see *Adding a
+third game*. A reminder, not the rulebook, though: deliberately only the things the screen
+doesn't already say. The trick buttons and the Flip 7 tally show you the arithmetic as you play, so the
 rules card covers what they leave out: the bidding ladder and screw-the-dealer for euchre,
 and for Flip 7 the action cards, which sit on the table but score nothing and so never
 appear in the tally.
@@ -243,6 +244,11 @@ python3 -m http.server 8000
 Each game is a `RULES`-shaped block at the top of the script — `RULES` for bid euchre,
 `FLIP7` for Flip 7 — plus the handful of views that draw it. A block carries its own
 `rules` copy for the menu, so a new game explains itself without touching the menu.
+
+**A game without rules is not a finished game**, and that isn't left to memory: a check at
+load throws if any block in `KINDS` has no `rules`, so the app won't start at all. It fails
+at your desk or not at all — there is no version of this where a game ships that the menu
+can't explain.
 
 Having written two, what they actually share turns out to be small, and only that much
 is shared: a **name**, a **target**, a **way of scoring one hand**, and that `rules`

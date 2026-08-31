@@ -269,9 +269,11 @@ const RULES = {
                    '3, 4, 5, partner’s best, alone.'],
     ['The dealer', 'If it reaches the dealer with nothing bid, the dealer has to bid.'],
     ['Trump',      'Called by whoever won the bid. High and low need a bid of 4.'],
-    ['Made it',    'Take at least your bid and score every trick you took, overtricks included.'],
-    ['Set',        'Take fewer and lose the bid instead. Partner’s best and alone need all six.'],
-    ['Defenders',  'The other team banks a point a trick, every hand, whatever happens.']
+    ['Scoring',    'Make a bid of 3, 4 or 5 and you score every trick you took, overtricks ' +
+                   'included. Partner’s best scores 12 and alone scores 24, but only on all six.'],
+    ['Set',        'Fall short and your score is docked what you bid: −3, −4 or −5, −12 for ' +
+                   'partner’s best, −24 for an alone. Scores go negative, and the app shows it.'],
+    ['Defenders',  'The other team banks a point a trick every hand, made or set.']
   ],
 
   trumps: [
@@ -343,6 +345,13 @@ const FLIP7 = {
 
 const flipped = e => !e.bust && e.nums.length >= FLIP7.hit;
 const KINDS   = { euchre: RULES, flip7: FLIP7 };
+
+/* A game nobody wrote up is not a finished game. This refuses to start rather
+   than shipping a menu that explains one game and throws on the other, so the
+   rule cannot be forgotten: it is broken at the desk or not at all. */
+for (const k in KINDS) {
+  if (!KINDS[k].rules || !KINDS[k].rules.length) throw new Error(k + ' has no rules');
+}
 const kindOf  = g => g.kind || 'euchre';    // games saved before Flip 7 are euchre
 const rulesOf = g => KINDS[kindOf(g)];
 const isF7    = g => kindOf(g) === 'flip7';

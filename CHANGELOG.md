@@ -93,6 +93,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- The bid euchre rules card now has a **Scoring** section of its own, like Flip 7's, and
+  spells out what going set actually costs: your score is docked what you bid — −3, −4 or
+  −5, −12 for partner's best, −24 for an alone. It used to say you "lose the bid", which
+  reads as losing the contract rather than losing that many points.
+- A game with no rules written up now stops the app at load rather than shipping a menu
+  that explains one game and breaks on another. Adding a game and explaining it are the
+  same job.
 - The player list on the setup screen now only picks who is playing. Correcting and
   forgetting moved to the menu, where they are available on every screen — which also
   ended a bug where a name corrected on the setup screen kept showing its old spelling on
