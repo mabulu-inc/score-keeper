@@ -357,6 +357,37 @@ const rulesOf = g => KINDS[kindOf(g)];
 const isF7    = g => kindOf(g) === 'flip7';
 
 /* ==========================================================================
+   BUILD — which copy of the app is actually running.
+
+   A phone can hold a stale page and a fresh service worker at the same time,
+   and from the outside that state is indistinguishable from a bug. So the
+   page says which build it is, and says so louder when the worker has a
+   newer one waiting.
+   ========================================================================== */
+const BUILD = 'v10';                       // bump together with CACHE in sw.js
+
+/* A worker that has installed but not activated leaves both caches in place,
+   and that pair is exactly the state worth reporting — so take the newest.
+   Numerically: 'v10' sorts before 'v9' as text, and v10 is where we are. */
+function newestBuild(names) {
+  const n = v => parseInt(v.slice(1), 10) || 0;
+  return names.filter(x => x.indexOf('score-keeper-') === 0)
+              .map(x => x.slice('score-keeper-'.length))
+              .sort((a, b) => n(a) - n(b))
+              .pop() || null;
+}
+
+let cached = null;                         // what the service worker is holding
+if (self.caches) {
+  caches.keys()
+    .then(ks => {
+      cached = newestBuild(ks) || cached;
+      if (cached && menuOn) done();        // it usually lands before anyone looks
+    })
+    .catch(() => {});
+}
+
+/* ==========================================================================
    STORAGE
    ========================================================================== */
 const LS = 'score-keeper-v1';
@@ -656,6 +687,7 @@ const ACT = {
   askEnd()    { confirmEnd = true; done(); },
   keepGoing() { confirmEnd = false; done(); },
   stay()      { confirmLeave = false; done(); },
+  reload()    { location.reload(); },
 
   again(d) {
     const g = d.id ? S.history.find(h => h.id === d.id) : S.game;
@@ -1232,7 +1264,17 @@ function viewMenu() {
     h += '<button style="width:100%" data-act="stepOut">Leave this game for now</button>' +
          '<div class="tiny muted center gap">It keeps its place. Nothing is scored or lost.</div>';
   }
-  return h;
+  return h + buildLine();
+}
+
+/* The waiting update is worth a button: the new page is already cached, so
+   reloading is all that stands between it and being the one you are using. */
+function buildLine() {
+  const stale = cached && cached !== BUILD;
+  return '<div class="tiny muted center" style="margin-top:22px">Score Keeper ' + BUILD +
+           (stale ? ' · <b>' + cached + ' ready</b>' : '') + '</div>' +
+         (stale ? '<button class="primary" style="width:100%;margin-top:10px" ' +
+                  'data-act="reload">Reload to finish updating</button>' : '');
 }
 
 function sect(id, title, hint, body) {

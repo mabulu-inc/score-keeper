@@ -30,6 +30,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Are you sure you want to leave?** — but only at home, where there is genuinely nothing
   left to go back to. It says plainly that everything is saved, and that another press is
   what actually goes, because a web page cannot close itself and should not pretend to.
+- **The build number at the foot of the menu**, so it is possible to tell which copy of
+  the app is actually running. A phone can hold a stale page alongside a fresh service
+  worker, and from the outside that is indistinguishable from a bug.
+- When the service worker has a newer build than the page you are looking at, the menu
+  says so and offers **Reload to finish updating** — the new page is already cached by
+  then, so a reload is all it takes. No second launch, no removing it from the home screen.
 - **Leave this game for now**, so a game in progress has an exit that is not *End game*.
   It keeps its place, the home screen offers it back and says which hand it reached, and
   says plainly that starting a different game is what would discard it.

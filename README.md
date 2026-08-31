@@ -204,6 +204,19 @@ answer is another press: a web page cannot close itself, so going is the browser
 and the app does not pretend otherwise. Nothing is lost either way — everything is saved
 as you go.
 
+### Which build you are running
+
+At the foot of the menu: **Score Keeper v10**. It is there because a phone can hold a
+stale page and a fresh service worker at the same time, and from the outside that state
+looks exactly like a bug — the app behaving in a way the code says it should not.
+
+When the worker has a newer build than the page you are looking at, the line says so
+(*v10 · v11 ready*) and offers **Reload to finish updating**. The new page is already
+cached by then, so reloading is all that stands between it and being the one you are
+using — no second launch, no removing it from the home screen.
+
+If you ever report something odd, this line says which copy you saw it in.
+
 ### Leaving a game
 
 A game in progress used to have only one exit — *End game*, which discarded it. The menu
@@ -248,8 +261,9 @@ Open the hosted URL in Safari or Chrome, then **Share → Add to Home Screen**. 
 its own icon, opens without browser chrome, and works with no signal after the first
 load — including at a kitchen table with bad reception.
 
-If you change any file, bump `CACHE` in `sw.js`, or phones will keep serving the old
-version from cache.
+If you change any file, bump `CACHE` in `sw.js` **and `BUILD` in `index.html`** together,
+or phones will keep serving the old version from cache. The menu shows both and says so
+when they disagree, and a test asserts they match.
 
 ## Running it locally
 
