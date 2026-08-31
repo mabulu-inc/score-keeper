@@ -23,6 +23,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   played — games, wins and win rate, with a euchre win counting for both partners — a head
   to head grid, and every finished game openable to its full hand-by-hand log, exactly as
   it looked when it ended.
+- **The back button now navigates inside the app** instead of closing it on the first
+  press. Each press closes one thing, innermost first: an unfolded past game, then the
+  menu section, then the menu, then back to home — and from the setup screen or a game in
+  progress, back to home, with the game kept rather than discarded.
+- **Are you sure you want to leave?** — but only at home, where there is genuinely nothing
+  left to go back to. It says plainly that everything is saved, and that another press is
+  what actually goes, because a web page cannot close itself and should not pretend to.
 - **Leave this game for now**, so a game in progress has an exit that is not *End game*.
   It keeps its place, the home screen offers it back and says which hand it reached, and
   says plainly that starting a different game is what would discard it.

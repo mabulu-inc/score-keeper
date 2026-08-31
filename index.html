@@ -375,6 +375,7 @@ let menuOn     = false;      // the menu screen is showing
 let menuTab    = null;       // 'players' | 'rules' | 'games' — the section open in it
 let openGame   = null;       // id of the finished game whose hands are unfolded
 let rulesKind  = null;       // game whose rules are showing, when it is not the obvious one
+let confirmLeave = false;    // back was pressed with nowhere left to go
 let away       = false;      // stepped out of a game in progress without ending it
 
 const nameOf = id => (S.roster.find(p => p.id === id) || {}).name || '?';
@@ -654,6 +655,7 @@ const ACT = {
   home()      { S.game = null; S.undo = []; confirmEnd = false; away = false; done(); },
   askEnd()    { confirmEnd = true; done(); },
   keepGoing() { confirmEnd = false; done(); },
+  stay()      { confirmLeave = false; done(); },
 
   again(d) {
     const g = d.id ? S.history.find(h => h.id === d.id) : S.game;
@@ -813,6 +815,14 @@ function render(keepFocus) {
 /* ---- home ---- */
 function viewHome() {
   let h = '';
+
+  if (confirmLeave) {
+    h += '<div class="card center"><div class="label">Leave Score Keeper?</div>' +
+         '<div class="tiny muted" style="margin:0 0 12px">Press back again to go. Everything ' +
+         'here is saved — the game in progress, the players, and every finished game — and ' +
+         'will be exactly where you left it.</div>' +
+         '<button style="width:100%" data-act="stay">Stay</button></div>';
+  }
 
   // A game stepped out of is still a game. Say where it got to, and say what
   // starting another one would cost, rather than letting it go quietly.
@@ -1371,8 +1381,40 @@ document.body.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
   const fn = ACT[el.dataset.act];
-  if (fn) { e.stopPropagation(); fn(el.dataset); }
+  if (fn) { e.stopPropagation(); confirmLeave = false; fn(el.dataset); }
 });
+
+/* ==========================================================================
+   BACK — the app has screens, so Back should move between them rather than
+   closing the app on the first press.
+
+   The history stack is not a mirror of those screens; it is one spare entry
+   that absorbs a press. What the press closes is read off the app's own
+   state, innermost first, which is why opening things with buttons needs no
+   bookkeeping here at all.
+   ========================================================================== */
+function stepBack() {
+  if (openGame)        { openGame = null;                          return true; }
+  if (menuTab)         { menuTab = null;  rulesKind = null;        return true; }
+  if (menuOn)          { menuOn = false;                           return true; }
+  if (S.setup)         { S.setup = null;                           return true; }
+  if (S.game && !away) { away = true; confirmEnd = false;          return true; }
+  return false;                      // home, with nothing above it to close
+}
+
+const armBack = () => { try { history.pushState({ sk: 1 }, ''); } catch (e) {} };
+
+addEventListener('popstate', () => {
+  if (stepBack())         { confirmLeave = false; armBack(); done(); }
+  else if (!confirmLeave) { confirmLeave = true;  armBack(); done(); }
+  // A second press with the question on screen is the answer. Carry it through
+  // the entry this document loaded on, so that press leaves rather than
+  // landing on the same screen and needing a third. A page cannot close
+  // itself, so with nothing behind it this is where the app simply stays.
+  else history.back();
+});
+
+armBack();
 
 root.addEventListener('input', e => {
   const el = e.target;

@@ -185,6 +185,25 @@ Partners never meet each other, so a partnership shows no result between them.
 when it finished. **Play again** brings the same people back with the deal moved on one
 place, and **✕** deletes the record.
 
+### Back
+
+The back button moves **within** the app, not out of it. Each press closes one thing,
+innermost first:
+
+```
+ a past game's hands  →  the menu section  →  the menu  →  home
+ the setup screen     →  home
+ a game in progress   →  home, with the game kept
+```
+
+Backing out of a game is the same as *Leave this game for now* — it keeps its place, it
+does not end it.
+
+Only at home, with nothing left above it, does back mean leave, and it asks first. The
+answer is another press: a web page cannot close itself, so going is the browser's to do
+and the app does not pretend otherwise. Nothing is lost either way — everything is saved
+as you go.
+
 ### Leaving a game
 
 A game in progress used to have only one exit — *End game*, which discarded it. The menu
