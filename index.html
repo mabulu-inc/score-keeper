@@ -364,7 +364,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v10';                       // bump together with CACHE in sw.js
+const BUILD = 'v11';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -688,6 +688,7 @@ const ACT = {
   keepGoing() { confirmEnd = false; done(); },
   stay()      { confirmLeave = false; done(); },
   reload()    { location.reload(); },
+  clearLog()  { backLog = []; try { localStorage.removeItem(BACKLOG); } catch (e) {} done(); },
 
   again(d) {
     const g = d.id ? S.history.find(h => h.id === d.id) : S.game;
@@ -1272,7 +1273,10 @@ function viewMenu() {
 function buildLine() {
   const stale = cached && cached !== BUILD;
   return '<div class="tiny muted center" style="margin-top:22px">Score Keeper ' + BUILD +
-           (stale ? ' · <b>' + cached + ' ready</b>' : '') + '</div>' +
+           (stale ? ' · <b>' + cached + ' ready</b>' : '') +
+           (backLog.length ? '<br>back: ' + backLog.join('  ') +
+             ' <button class="ghost" data-act="clearLog" style="font-size:11px;padding:0 6px">' +
+             'clear</button>' : '') + '</div>' +
          (stale ? '<button class="primary" style="width:100%;margin-top:10px" ' +
                   'data-act="reload">Reload to finish updating</button>' : '');
 }
@@ -1453,14 +1457,32 @@ function stepBack() {
 
 const armBack = () => { try { history.pushState({ sk: 1 }, ''); } catch (e) {} };
 
+/* TEMPORARY — a Back press behaves differently in an installed app than in a
+   tab, and the difference has not been reproducible from the outside. This
+   records what each press actually did so the menu can show it. Delete once
+   the cause is known. */
+const BACKLOG = 'score-keeper-back';
+let backLog = [];
+try { backLog = JSON.parse(localStorage.getItem(BACKLOG)) || []; } catch (e) {}
+
+const topLayer = () => openGame ? 'game' : menuTab ? 'sect' : menuOn ? 'menu'
+                     : S.setup ? 'setup' : (S.game && !away) ? 'play' : 'home';
+
+function note(what) {
+  backLog.push(what + '@' + history.length);
+  while (backLog.length > 8) backLog.shift();
+  try { localStorage.setItem(BACKLOG, JSON.stringify(backLog)); } catch (e) {}
+}
+
 addEventListener('popstate', () => {
-  if (stepBack())         { confirmLeave = false; armBack(); done(); }
-  else if (!confirmLeave) { confirmLeave = true;  armBack(); done(); }
+  const from = topLayer();
+  if (stepBack())         { note(from);   confirmLeave = false; armBack(); done(); }
+  else if (!confirmLeave) { note('ask');  confirmLeave = true;  armBack(); done(); }
   // A second press with the question on screen is the answer. Carry it through
   // the entry this document loaded on, so that press leaves rather than
   // landing on the same screen and needing a third. A page cannot close
   // itself, so with nothing behind it this is where the app simply stays.
-  else history.back();
+  else { note('go'); history.back(); }
 });
 
 armBack();

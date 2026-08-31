@@ -30,6 +30,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Are you sure you want to leave?** — but only at home, where there is genuinely nothing
   left to go back to. It says plainly that everything is saved, and that another press is
   what actually goes, because a web page cannot close itself and should not pretend to.
+- A temporary line under the build number recording what each Back press actually did,
+  because Back behaves differently in the installed app than in a browser tab and the
+  difference has not been reproducible from the outside. It will be removed once the cause
+  is known.
 - **The build number at the foot of the menu**, so it is possible to tell which copy of
   the app is actually running. A phone can hold a stale page alongside a fresh service
   worker, and from the outside that is indistinguishable from a bug.
