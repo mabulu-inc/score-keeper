@@ -121,6 +121,18 @@
   input[type=text]:focus { outline: none; border-color: var(--accent); }
   .nameRow { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
   .nameRow input { flex: 1; }
+  /* --- motion, only where it answers something ------------------------
+     A panel has to read as covering the screen rather than replacing it, and
+     a question has to read as a response rather than the layout jumping.
+     Everything else on this screen holds still while cards are being played. */
+  @media (prefers-reduced-motion: no-preference) {
+    .scrim { animation: fade 120ms ease-out; }
+    .pop   { animation: rise 140ms ease-out; transform-origin: 100% 0; }
+    .ask   { animation: rise 140ms ease-out; transform-origin: 50% 0; }
+  }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes rise { from { opacity: 0; transform: scale(.97) translateY(-4px); } }
+
   /* --- the menu: a short panel over whatever you were doing --- */
   .scrim { position: fixed; inset: 0; background: rgba(6, 7, 9, .62); z-index: 20; }
   .popwrap { position: fixed; inset: 0; z-index: 21; pointer-events: none;
@@ -376,7 +388,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v14';                       // bump together with CACHE in sw.js
+const BUILD = 'v15';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -761,6 +773,49 @@ function done(keepFocus) { save(); render(keepFocus); }
 const root    = document.getElementById('root');
 const menuBtn = document.getElementById('menubtn');
 
+/* ==========================================================================
+   The standings re-sort when a hand is scored, and who went past whom is the
+   story of the game — worth seeing happen rather than finding already done.
+
+   The whole screen is rebuilt on every render, so there is no element left to
+   transition. Instead the rows are matched to the players they belonged to,
+   put back where those players were, and let go. Everywhere else the numbers
+   simply change; a total nobody has to watch move is easier to read.
+   ========================================================================== */
+const still = () => {
+  try { return matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  catch (e) { return true; }
+};
+
+// offsetTop, not the viewport, so a screen that scrolls to the top on the way
+// past does not send every row flying.
+function rankTops() {
+  const at = {};
+  if (still() || !root.querySelectorAll) return at;
+  for (const el of root.querySelectorAll('.rank[data-p]')) at[el.dataset.p] = el.offsetTop;
+  return at;
+}
+
+function slideRanks(was) {
+  if (still() || !root.querySelectorAll) return;
+
+  const moved = [];
+  for (const el of root.querySelectorAll('.rank[data-p]')) {
+    const from = was[el.dataset.p];
+    if (from === undefined || from === el.offsetTop) continue;
+    el.style.transition = 'none';
+    el.style.transform  = 'translateY(' + (from - el.offsetTop) + 'px)';
+    moved.push(el);
+  }
+  if (!moved.length) return;
+
+  void root.offsetHeight;                    // one reflow, so the change counts
+  for (const el of moved) {
+    el.style.transition = 'transform 240ms ease-out';
+    el.style.transform  = '';
+  }
+}
+
 function tableHTML(seats, opt) {
   opt = opt || {};
   let h = '<div class="card"><div class="table">';
@@ -825,7 +880,7 @@ function footer(g) {
   const undo = '<button data-act="undo"' + (S.undo.length ? '' : ' disabled') + '>Undo</button>';
   if (g.done) return '<div class="row">' + undo + '<button data-act="home">Home</button></div>';
   if (confirmEnd) {
-    return '<div class="card center"><div class="tiny muted" style="margin-bottom:10px">' +
+    return '<div class="card center ask"><div class="tiny muted" style="margin-bottom:10px">' +
            'Discard this game? It will not be saved.</div><div class="row">' +
            '<button data-act="keepGoing">Keep playing</button>' +
            '<button class="warn" data-act="home">Discard</button></div></div>';
@@ -850,11 +905,13 @@ function render(keepFocus) {
   menuBtn.textContent = '☰ Menu';
   menuBtn.className   = 'menubtn' + (menuOn || menuTab ? ' open' : '');
 
+  const wasAt = rankTops();      // where each player sat before this render
   const view = menuTab            ? viewSection()
              : S.setup            ? (f7 ? viewSetup7() : viewSetup())
              : S.game && !away    ? (f7 ? viewGame7() : viewGame())
                                   : viewHome();
   root.innerHTML = view + (menuOn ? menuPanel() : '');
+  slideRanks(wasAt);
   keepHistory();                 // pushed here, so it happens during the tap
   if (keepFocus) {
     const el = document.getElementById('newname');
@@ -867,7 +924,7 @@ function viewHome() {
   let h = '';
 
   if (confirmLeave) {
-    h += '<div class="card center"><div class="label">Leave Score Keeper?</div>' +
+    h += '<div class="card center ask"><div class="label">Leave Score Keeper?</div>' +
          '<div class="tiny muted" style="margin:0 0 12px">Press back again to go. Everything ' +
          'here is saved — the game in progress, the players, and every finished game — and ' +
          'will be exactly where you left it.</div>' +
@@ -1143,7 +1200,8 @@ function viewGame7() {
            .sort((a, b) => b.pts - a.pts || a.i - b.i)
            .forEach(r => {
     // Nobody leads a game nobody has scored in yet.
-    h += '<div class="rank' + (best > 0 && r.pts === best ? ' lead' : '') + '">' +
+    h += '<div class="rank' + (best > 0 && r.pts === best ? ' lead' : '') +
+           '" data-p="' + r.id + '">' +
            '<div class="nm">' + esc(nameOf(r.id)) + '</div>' +
            '<div class="bar"><i style="width:' +
              Math.max(0, Math.min(100, r.pts / FLIP7.target * 100)) + '%"></i></div>' +
@@ -1462,7 +1520,7 @@ document.body.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
   const fn = ACT[el.dataset.act];
-  if (fn) { e.stopPropagation(); confirmLeave = false; fn(el.dataset); }
+  if (fn) { e.stopPropagation(); confirmLeave = false; confirmEnd = false; fn(el.dataset); }
 });
 
 /* ==========================================================================

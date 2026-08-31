@@ -27,6 +27,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   home screen. Each layer now has its own history entry, pushed as you open it, rather than
   one entry being replaced after each press from inside the back handler — which an
   installed app quietly ignores, so nothing was left to absorb the next press.
+- The standings re-sort in front of you when a hand is scored, so a player coming from
+  last to first is something you watch happen rather than something you find already done.
+  It is the one number movement in the app that carries information.
+- The menu grows from the button you tapped, and the two questions the app asks arrive
+  rather than shoving the page down — motion that says *this is covering your game* rather
+  than *this replaced it*, which the app previously had no way of expressing. Everything is
+  under 250ms and all of it is off under reduced motion.
 - The menu is a short panel over whatever you were doing rather than a screen of its own.
   Tap away from it to dismiss it, or pick a row — which dismisses it too, and gives the
   screen to what you picked. The header button reads ☰ Menu throughout: a menu with a

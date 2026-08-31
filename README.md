@@ -243,8 +243,19 @@ the home screen says so before you do.
 ## Staying out of the way
 
 The screen answers the two questions a table actually asks — *whose turn is it?* and
-*what's the score?* — and then stops. No animation, no sound, no confetti, no
-notifications, nothing that moves while you're playing cards.
+*what's the score?* — and then stops. No sound, no confetti, no notifications, nothing
+that moves to be admired.
+
+Three things move, and each one answers a question rather than decorating an answer. The
+menu **grows from the button you tapped**, so it reads as covering your game rather than
+replacing it. The two questions the app asks — *Discard this game?*, *Leave Score
+Keeper?* — **arrive** rather than shoving the page down. And when a hand is scored the
+standings **re-sort in front of you**, because who went past whom is the story of the
+game and is worth seeing happen rather than finding already done.
+
+Everything is under 250ms, and all of it is off for anyone whose device asks for reduced
+motion. Scores never count up: a number you have to watch move is a number you can't
+read.
 
 Under the running score, every hand is listed the way you'd have written it down, with
 each player's running total beside what they scored. That's the scratchpad, kept for
