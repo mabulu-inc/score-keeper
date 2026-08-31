@@ -20,10 +20,12 @@ Four players, two teams, first to 40.
 1. **New game.** Type the four names, or tap them from the list of people you've
    played with before.
 2. **Seat them.** Partners sit opposite each other on the diagram. **Drag a player to the
-   chair you want them in.** Whoever is sitting there stands up and steps into the chair
-   you're leaving, so you see the table you'd get before you let go — and letting go
-   anywhere else puts everyone back. An empty chair has nobody to move, so it lights up
-   instead. Pick who deals first; after that the deal moves clockwise on its own.
+   chair you want them in.** Nobody is traded: the players in between shuffle along by one
+   and a chair opens up under your finger, so the seating you'd get is the seating you're
+   looking at while you decide. Carrying someone right round the table moves everybody;
+   one chair over moves one. Let go anywhere else and they all sit back down. An empty
+   chair is already open, so nobody has to move for it. Pick who deals first; after that
+   the deal moves clockwise on its own.
 3. **Play.** Each hand is three taps in a row: the bidding, the trump, and how many
    tricks the bidding team took. The score does itself.
 

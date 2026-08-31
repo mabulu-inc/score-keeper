@@ -101,7 +101,6 @@
   .seat.empty { border-style: dashed; }
   .table.move .seat { touch-action: none; cursor: grab; }
   .seat.lift { z-index: 5; cursor: grabbing; box-shadow: 0 12px 26px rgba(0, 0, 0, .55); }
-  .seat.onto { box-shadow: 0 0 0 2px var(--accent) inset; }
   .seat.turn { background: #2c3340; box-shadow: 0 0 0 2px var(--text) inset; }
   .seat .tag { font-size: 10px; font-weight: 700; letter-spacing: .07em;
                text-transform: uppercase; color: var(--muted); }
@@ -390,7 +389,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v18';                       // bump together with CACHE in sw.js
+const BUILD = 'v19';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -973,7 +972,7 @@ function viewSetup() {
   let h = setupBanner();
   h += tableHTML(st.seats, {
     move: true, remove: true,
-    mid: full ? 'drag to<br>swap seats' : 'partners<br>sit opposite',
+    mid: full ? 'drag to<br>reseat' : 'partners<br>sit opposite',
     tag: i => [st.first === i ? tag('deals 1st', true) : null]
   });
 
@@ -1529,10 +1528,27 @@ document.body.addEventListener('click', e => {
    ========================================================================== */
 let drag = null;
 
-const swapSeats = (i, j) => {
-  const seats = S.setup.seats;
-  const held = seats[i]; seats[i] = seats[j]; seats[j] = held;
-};
+/* Where everyone ends up if the player being carried is let go over chair `to`.
+   Returns the new seat for each current seat, so one description drives both
+   the preview and the change itself and they cannot drift apart.
+
+   An occupied chair is not traded for: the players between shuffle along by
+   one and open a place. An empty chair is already open, so it simply changes
+   hands with the one being left. */
+function planSeats(from, to) {
+  const map = [0, 1, 2, 3];
+  if (!S.setup.seats[to]) { map[from] = to; map[to] = from; return map; }
+
+  const order = [0, 1, 2, 3];
+  order.splice(to, 0, order.splice(from, 1)[0]);
+  order.forEach((was, now) => { map[was] = now; });
+  return map;
+}
+
+function applyMove(from, to) {
+  const was = S.setup.seats.slice();
+  planSeats(from, to).forEach((now, old) => { S.setup.seats[now] = was[old]; });
+}
 
 /* The chair under the finger. Measured once when the drag starts, because a
    player who has stood up takes their tile with them — and hit-testing where
@@ -1551,8 +1567,9 @@ root.addEventListener('pointerdown', e => {
   const el = e.target.closest('.table.move .seat');
   if (!el || !S.setup.seats[+el.dataset.i]) return;    // empty chairs stay put
 
-  drag = { el, i: +el.dataset.i, x: e.clientX, y: e.clientY, onto: null, chairs: [] };
+  drag = { el, i: +el.dataset.i, x: e.clientX, y: e.clientY, onto: null, chairs: [], homes: [] };
   for (const seat of root.querySelectorAll('.table.move .seat')) {
+    drag.homes[+seat.dataset.i] = { x: seat.offsetLeft, y: seat.offsetTop };
     if (seat === el) continue;                 // your own chair is not a target
     const r = seat.getBoundingClientRect();
     drag.chairs.push({ el: seat, l: r.left, t: r.top, r: r.right, b: r.bottom });
@@ -1575,23 +1592,21 @@ root.addEventListener('pointermove', e => {
   openASeat();
 });
 
-/* Whoever is sitting where you are hovering steps into the chair you are
-   leaving, so the swap is shown rather than described and you can see the
-   table you would end up with before letting go. An empty chair has nobody to
-   move, so it says so with a ring instead. */
+/* The table rearranges itself around the player you are holding: everyone
+   between shuffles along and a chair opens where your finger is. The seating
+   you would get is the seating you are looking at, so there is nothing to
+   ring or label — the gap is the invitation. */
 function openASeat() {
-  for (const el of root.querySelectorAll('.table.move .seat')) {
-    if (el === drag.el) continue;
-    el.classList.remove('onto');
-    el.style.transition = 'transform 200ms ease-out';
-    el.style.transform  = '';
-  }
-  const onto = drag.onto;
-  if (!onto) return;
+  const map = drag.onto ? planSeats(drag.i, +drag.onto.dataset.i) : null;
 
-  if (!S.setup.seats[+onto.dataset.i]) { onto.classList.add('onto'); return; }
-  onto.style.transform = 'translate(' + (drag.el.offsetLeft - onto.offsetLeft) + 'px,' +
-                                        (drag.el.offsetTop  - onto.offsetTop)  + 'px)';
+  for (const c of drag.chairs) {
+    const here = +c.el.dataset.i;
+    const goes = map ? map[here] : here;
+    c.el.style.transition = 'transform 200ms ease-out';
+    c.el.style.transform  = goes === here ? '' :
+      'translate(' + (drag.homes[goes].x - drag.homes[here].x) + 'px,' +
+                     (drag.homes[goes].y - drag.homes[here].y) + 'px)';
+  }
 }
 
 function drop() {
@@ -1602,8 +1617,7 @@ function drop() {
   if (onto) {
     // The tiles are left exactly where they look, and the render that follows
     // carries them on from there rather than putting them back first.
-    onto.classList.remove('onto');
-    swapSeats(i, +onto.dataset.i);
+    applyMove(i, +onto.dataset.i);
     done();
     return;
   }
