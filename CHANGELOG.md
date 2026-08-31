@@ -13,6 +13,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Flip 7 says **who gets the first card**, not just who deals — the thing a distracted
   table actually loses. It is still all the app knows about a hand in progress: nobody has
   to tell it about each card as it lands.
+- The Flip 7 setup screen shows the seating as a **draggable list** rather than a line of
+  prose you could read but not change. Getting the order right no longer means removing
+  people and tapping them back in one at a time — and it is the same list, and the same
+  drag, that the game itself uses.
 - **✎ Seating** on a Flip 7 game opens the order. Drag anyone up or down to put it right
   when two people swap chairs.
 - **Players can join and leave a game already under way.** ✕ takes somebody out, + name

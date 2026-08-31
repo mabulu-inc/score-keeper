@@ -94,8 +94,9 @@ Everyone for themselves, as many players as are round the table, first to 200.
 
 ## Using it
 
-1. **New game → Flip 7.** Tap in everyone playing. There is no upper limit; whoever you
-   tap first deals first, and the deal moves left from there.
+1. **New game → Flip 7.** Tap in everyone playing — there is no upper limit. They appear
+   as a **Seating** list in the order you tapped them; drag anyone up or down to match how
+   you're actually sitting. The deal starts at the top and works down, then round again.
 2. **Play the hand** on the table, not in the app. Nothing to press while cards are
    being flipped.
 3. **Tally it.** When the hand is over, tap a player's name and then tap the cards

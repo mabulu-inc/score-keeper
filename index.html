@@ -401,7 +401,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v24';                       // bump together with CACHE in sw.js
+const BUILD = 'v25';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -1237,14 +1237,20 @@ const cell = (d, t, run) =>
 function viewSetup7() {
   const st = S.setup, n = st.players.length;
 
-  const foot = '<div class="tiny muted gap">' +
-    (n < FLIP7.min
-      ? 'Tap two or more players. Everyone plays for themselves — add as many as are round the table.'
-      : n + ' playing · ' + st.players.map(id => esc(nameOf(id))).join(' → ') + '<br>' +
-        esc(nameOf(st.players[0])) + ' deals first, then the deal moves left.') +
-    '</div>';
+  const foot = n >= FLIP7.min ? '' :
+    '<div class="tiny muted gap">Tap two or more players. Everyone plays for themselves — ' +
+    'add as many as are round the table.</div>';
 
-  return setupBanner() + rosterCard(foot) +
+  // The order used to be a line of prose you could read and not change. It is
+  // the same list the game itself uses, so it can be put right before you start
+  // rather than after.
+  const seating = n < FLIP7.min ? '' :
+    '<div class="card"><div class="label">Seating &nbsp;·&nbsp; ' + n + ' playing</div>' +
+      orderRows(st.players, i => i === 0 ? 'deals first' : '', 'toggleRoster', false) +
+      '<div class="tiny muted gap">Drag anyone up or down to match how you are sitting round ' +
+      'the table. The deal starts at the top and works down, then round again.</div></div>';
+
+  return setupBanner() + rosterCard(foot) + seating +
     '<div class="card center tiny muted" style="line-height:1.7">First to <b>' + FLIP7.target +
       '</b>. At the end of each hand you tap the cards a player is holding and the score does ' +
       'itself — seven different numbers is <b>+' + FLIP7.bonus + '</b>.</div>' +
@@ -1326,6 +1332,16 @@ function viewHand7(g, s) {
    ring the deal walks round, so it is worth being able to fix when two people
    swap chairs, and worth being able to add to and take from mid-game: people
    turn up late and people give up. */
+function orderRows(ids, cue, act, locked) {
+  return '<div class="order">' + ids.map((id, i) =>
+    '<div class="ord" data-i="' + i + '" data-p="' + id + '">' +
+      '<span class="nm">' + esc(nameOf(id)) + '</span>' +
+      '<span class="cue">' + (cue(i) || '') + '</span>' +
+      '<button class="ghost" data-act="' + act + '" data-id="' + id + '"' +
+        (locked ? ' disabled' : '') + '>✕</button>' +
+    '</div>').join('') + '</div>';
+}
+
 function seatingPanel(g, deals) {
   if (!editSeating) {
     return '<button class="seating" data-act="seating">✎ Seating &nbsp;·&nbsp; ' +
@@ -1337,17 +1353,8 @@ function seatingPanel(g, deals) {
   let h = '<div class="card"><div class="label" style="display:flex">Seating' +
             '<span style="margin-left:auto"><button class="ghost" data-act="seating" ' +
             'style="font:inherit;letter-spacing:.1em;padding:0">DONE</button></span></div>' +
-          '<div class="order">';
-
-  g.players.forEach((id, i) => {
-    h += '<div class="ord" data-i="' + i + '" data-p="' + id + '">' +
-           '<span class="nm">' + esc(nameOf(id)) + '</span>' +
-           '<span class="cue">' + (i === deals ? 'deals this hand' : '') + '</span>' +
-           '<button class="ghost" data-act="standUp" data-id="' + id + '"' +
-             (g.players.length <= FLIP7.min ? ' disabled' : '') + '>✕</button>' +
-         '</div>';
-  });
-  h += '</div>';
+          orderRows(g.players, i => i === deals ? 'deals this hand' : '',
+                    'standUp', g.players.length <= FLIP7.min);
 
   if (spare.length) {
     h += '<div class="chips gap">' + spare.map(p =>
@@ -1650,8 +1657,10 @@ let drag = null;
 
 /* The seating list is a list, not a ring: dragging somebody up the order puts
    them there and everyone they passed moves down one. Nothing wraps round. */
+const orderList = () => S.setup ? S.setup.players : S.game.players;
+
 function planOrder(from, to) {
-  const map = S.game.players.map((_, i) => i);
+  const map = orderList().map((_, i) => i);
   if (from === to) return map;
   const order = map.slice();
   order.splice(to, 0, order.splice(from, 1)[0]);
@@ -1660,8 +1669,14 @@ function planOrder(from, to) {
 }
 
 function applyOrder(from, to) {
-  const g = S.game, map = planOrder(from, to);
-  const players = g.players.slice(), entry = g.entry.slice();
+  const map = planOrder(from, to);
+
+  if (S.setup) {
+    const was = S.setup.players.slice();
+    map.forEach((now, old) => { S.setup.players[now] = was[old]; });
+    return;
+  }
+  const g = S.game, players = g.players.slice(), entry = g.entry.slice();
   map.forEach((now, old) => { g.players[now] = players[old]; g.entry[now] = entry[old]; });
   if (g.open !== null) g.open = map[g.open];
 }
