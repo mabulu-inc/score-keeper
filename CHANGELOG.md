@@ -27,6 +27,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   home screen. Each layer now has its own history entry, pushed as you open it, rather than
   one entry being replaced after each press from inside the back handler — which an
   installed app quietly ignores, so nothing was left to absorb the next press.
+- Seating is now done by **dragging a player to the chair you want them in**, rather than
+  tapping one seat and then another. The seat under your finger lights up, the two players
+  slide past each other when you let go, and letting go anywhere else leaves everyone where
+  they were.
 - The standings re-sort in front of you when a hand is scored, so a player coming from
   last to first is something you watch happen rather than something you find already done.
   It is the one number movement in the app that carries information.

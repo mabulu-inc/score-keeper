@@ -99,7 +99,9 @@
   .seat.t0 .nm { color: var(--accent); }
   .seat.t1 .nm { color: var(--cool); }
   .seat.empty { border-style: dashed; }
-  .seat.sel { box-shadow: 0 0 0 2px var(--text) inset; }
+  .table.move .seat { touch-action: none; cursor: grab; }
+  .seat.lift { z-index: 5; cursor: grabbing; box-shadow: 0 12px 26px rgba(0, 0, 0, .55); }
+  .seat.onto { box-shadow: 0 0 0 2px var(--accent) inset; }
   .seat.turn { background: #2c3340; box-shadow: 0 0 0 2px var(--text) inset; }
   .seat .tag { font-size: 10px; font-weight: 700; letter-spacing: .07em;
                text-transform: uppercase; color: var(--muted); }
@@ -388,7 +390,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v15';                       // bump together with CACHE in sw.js
+const BUILD = 'v16';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -536,7 +538,7 @@ const ACT = {
     const kind = d.kind === 'flip7' ? 'flip7' : 'euchre';
     S.setup = kind === 'flip7'
       ? { kind, players: [] }
-      : { kind, seats: [null, null, null, null], first: null, sel: null };
+      : { kind, seats: [null, null, null, null], first: null };
     done();
   },
 
@@ -554,24 +556,10 @@ const ACT = {
 
   toggleRoster(d) {
     if (inGame(d.id)) unpick(d.id); else pick(d.id);
-    S.setup.sel = null;
     done();
   },
 
-  // Tap one seat then another to swap them; that is the whole re-ordering UI.
-  tapSeat(d) {
-    const i = +d.i, st = S.setup;
-    if (!st.seats[i]) { st.sel = null; done(); return; }
-    if (st.sel === null || st.sel === i) {
-      st.sel = st.sel === i ? null : i;
-    } else {
-      [st.seats[st.sel], st.seats[i]] = [st.seats[i], st.seats[st.sel]];
-      st.sel = null;
-    }
-    done();
-  },
-
-  unseat(d) { S.setup.seats[+d.i] = null; S.setup.sel = null; done(); },
+  unseat(d) { S.setup.seats[+d.i] = null; done(); },
   first(d)  { S.setup.first = +d.i; done(); },
   /* ---- the menu ---- */
   menu()      { menuOn = !menuOn; done(); },
@@ -726,7 +714,7 @@ const ACT = {
       S.setup = { kind: 'flip7', players: g.players.slice(k).concat(g.players.slice(0, k)) };
     } else {
       const last = dealerFor(g, Math.max(0, g.hands.length - 1));
-      S.setup = { kind: 'euchre', seats: g.seats.slice(), first: (last + 1) % 4, sel: null };
+      S.setup = { kind: 'euchre', seats: g.seats.slice(), first: (last + 1) % 4 };
     }
     S.game = null; S.undo = []; confirmEnd = false; away = false; menuOn = false;
     done();
@@ -789,22 +777,24 @@ const still = () => {
 
 // offsetTop, not the viewport, so a screen that scrolls to the top on the way
 // past does not send every row flying.
-function rankTops() {
+function seatsBefore() {
   const at = {};
   if (still() || !root.querySelectorAll) return at;
-  for (const el of root.querySelectorAll('.rank[data-p]')) at[el.dataset.p] = el.offsetTop;
+  for (const el of root.querySelectorAll('[data-p]')) at[el.dataset.p] = [el.offsetLeft, el.offsetTop];
   return at;
 }
 
-function slideRanks(was) {
+function slideSeats(was) {
   if (still() || !root.querySelectorAll) return;
 
   const moved = [];
-  for (const el of root.querySelectorAll('.rank[data-p]')) {
+  for (const el of root.querySelectorAll('[data-p]')) {
     const from = was[el.dataset.p];
-    if (from === undefined || from === el.offsetTop) continue;
+    if (!from) continue;
+    const dx = from[0] - el.offsetLeft, dy = from[1] - el.offsetTop;
+    if (!dx && !dy) continue;
     el.style.transition = 'none';
-    el.style.transform  = 'translateY(' + (from - el.offsetTop) + 'px)';
+    el.style.transform  = 'translate(' + dx + 'px,' + dy + 'px)';
     moved.push(el);
   }
   if (!moved.length) return;
@@ -818,16 +808,17 @@ function slideRanks(was) {
 
 function tableHTML(seats, opt) {
   opt = opt || {};
-  let h = '<div class="card"><div class="table">';
+  let h = '<div class="card"><div class="table' + (opt.move ? ' move' : '') + '">';
   for (let i = 0; i < 4; i++) {
     const id = seats[i];
     const cls = ['seat', 'p-' + POS[i], id ? 't' + teamOf(i) : 'empty'];
-    if (opt.sel === i) cls.push('sel');
-    if (opt.turn === i) cls.push('turn');
+      if (opt.turn === i) cls.push('turn');
     const tags = (opt.tag ? opt.tag(i) : []).filter(Boolean);
 
-    h += '<div class="' + cls.join(' ') + '"' +
-         (opt.act ? ' data-act="' + opt.act + '" data-i="' + i + '"' : '') + '>' +
+    // data-p is the player, so a seat can be followed to wherever it lands.
+    h += '<div class="' + cls.join(' ') + '" data-i="' + i + '"' +
+         (id ? ' data-p="' + id + '"' : '') +
+         (opt.act ? ' data-act="' + opt.act + '"' : '') + '>' +
          (id ? '<div class="nm">' + esc(nameOf(id)) + '</div>'
              : '<div class="nm muted">Seat ' + (i + 1) + '</div>') +
          tags.map(t => '<div class="tag' + (t.live ? ' live' : '') + '">' + t.text + '</div>').join('') +
@@ -905,13 +896,13 @@ function render(keepFocus) {
   menuBtn.textContent = '☰ Menu';
   menuBtn.className   = 'menubtn' + (menuOn || menuTab ? ' open' : '');
 
-  const wasAt = rankTops();      // where each player sat before this render
+  const wasAt = seatsBefore();   // where each player sat before this render
   const view = menuTab            ? viewSection()
              : S.setup            ? (f7 ? viewSetup7() : viewSetup())
              : S.game && !away    ? (f7 ? viewGame7() : viewGame())
                                   : viewHome();
   root.innerHTML = view + (menuOn ? menuPanel() : '');
-  slideRanks(wasAt);
+  slideSeats(wasAt);
   keepHistory();                 // pushed here, so it happens during the tap
   if (keepFocus) {
     const el = document.getElementById('newname');
@@ -975,8 +966,8 @@ function viewSetup() {
 
   let h = setupBanner();
   h += tableHTML(st.seats, {
-    act: 'tapSeat', sel: st.sel, remove: true,
-    mid: full ? 'tap two<br>to swap' : 'partners<br>sit opposite',
+    move: true, remove: true,
+    mid: full ? 'drag to<br>swap seats' : 'partners<br>sit opposite',
     tag: i => [st.first === i ? tag('deals 1st', true) : null]
   });
 
@@ -1522,6 +1513,75 @@ document.body.addEventListener('click', e => {
   const fn = ACT[el.dataset.act];
   if (fn) { e.stopPropagation(); confirmLeave = false; confirmEnd = false; fn(el.dataset); }
 });
+
+/* ==========================================================================
+   SEATING — drag a player to the chair you want them in.
+
+   Nothing is committed until the finger lifts. The screen is rebuilt on every
+   action, which would tear the tile out from under the gesture, so the drag
+   moves it with a transform and the seats only change hands once, on the drop.
+   ========================================================================== */
+let drag = null;
+
+const swapSeats = (i, j) => {
+  const seats = S.setup.seats;
+  const held = seats[i]; seats[i] = seats[j]; seats[j] = held;
+};
+
+// The tile under the finger, ignoring the one being carried.
+function seatUnder(x, y) {
+  let hit = null;
+  for (const el of root.querySelectorAll('.table.move .seat')) {
+    if (el === drag.el) continue;
+    const r = el.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) hit = el;
+  }
+  return hit;
+}
+
+root.addEventListener('pointerdown', e => {
+  if (!S.setup || S.setup.kind !== 'euchre') return;
+  if (e.target.closest('[data-act]')) return;          // the ✕ is not a handle
+  const el = e.target.closest('.table.move .seat');
+  if (!el || !S.setup.seats[+el.dataset.i]) return;    // empty chairs stay put
+
+  drag = { el, i: +el.dataset.i, x: e.clientX, y: e.clientY, onto: null };
+  // Capture keeps the moves coming when the finger strays off the tile. If it
+  // is refused the drag still works, because the listeners are on the window.
+  try { el.setPointerCapture(e.pointerId); } catch (err) {}
+  el.classList.add('lift');
+  e.preventDefault();
+});
+
+root.addEventListener('pointermove', e => {
+  if (!drag) return;
+  drag.el.style.transform =
+    'translate(' + (e.clientX - drag.x) + 'px,' + (e.clientY - drag.y) + 'px)';
+
+  const onto = seatUnder(e.clientX, e.clientY);
+  if (onto === drag.onto) return;
+  if (drag.onto) drag.onto.classList.remove('onto');
+  if (onto) onto.classList.add('onto');
+  drag.onto = onto;
+});
+
+function drop() {
+  if (!drag) return;
+  const { el, i, onto } = drag;
+  el.classList.remove('lift');
+  el.style.transform = '';
+  if (onto) onto.classList.remove('onto');
+  drag = null;
+
+  if (!onto) return;                 // let go over nothing: everyone stays put
+  swapSeats(i, +onto.dataset.i);
+  done();                            // and the two of them slide past each other
+}
+
+// On the window, not the table: a finger lifted somewhere else still ends the
+// drag rather than leaving a tile stuck to it.
+addEventListener('pointerup', drop);
+addEventListener('pointercancel', drop);
 
 /* ==========================================================================
    BACK — the app has screens, so Back should move between them rather than
