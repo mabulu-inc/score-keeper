@@ -390,7 +390,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v16';                       // bump together with CACHE in sw.js
+const BUILD = 'v17';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -780,19 +780,25 @@ const still = () => {
 function seatsBefore() {
   const at = {};
   if (still() || !root.querySelectorAll) return at;
-  for (const el of root.querySelectorAll('[data-p]')) at[el.dataset.p] = [el.offsetLeft, el.offsetTop];
+  const base = root.getBoundingClientRect();     // relative, so scrolling cancels out
+  for (const el of root.querySelectorAll('[data-p]')) {
+    const r = el.getBoundingClientRect();
+    at[el.dataset.p] = [r.left - base.left, r.top - base.top];
+  }
   return at;
 }
 
 function slideSeats(was) {
   if (still() || !root.querySelectorAll) return;
 
+  const base = root.getBoundingClientRect();
   const moved = [];
   for (const el of root.querySelectorAll('[data-p]')) {
     const from = was[el.dataset.p];
     if (!from) continue;
-    const dx = from[0] - el.offsetLeft, dy = from[1] - el.offsetTop;
-    if (!dx && !dy) continue;
+    const r = el.getBoundingClientRect();
+    const dx = from[0] - (r.left - base.left), dy = from[1] - (r.top - base.top);
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
     el.style.transition = 'none';
     el.style.transform  = 'translate(' + dx + 'px,' + dy + 'px)';
     moved.push(el);
@@ -1560,22 +1566,50 @@ root.addEventListener('pointermove', e => {
 
   const onto = seatUnder(e.clientX, e.clientY);
   if (onto === drag.onto) return;
-  if (drag.onto) drag.onto.classList.remove('onto');
-  if (onto) onto.classList.add('onto');
   drag.onto = onto;
+  openASeat();
 });
+
+/* Whoever is sitting where you are hovering steps into the chair you are
+   leaving, so the swap is shown rather than described and you can see the
+   table you would end up with before letting go. An empty chair has nobody to
+   move, so it says so with a ring instead. */
+function openASeat() {
+  for (const el of root.querySelectorAll('.table.move .seat')) {
+    if (el === drag.el) continue;
+    el.classList.remove('onto');
+    el.style.transition = 'transform 200ms ease-out';
+    el.style.transform  = '';
+  }
+  const onto = drag.onto;
+  if (!onto) return;
+
+  if (!S.setup.seats[+onto.dataset.i]) { onto.classList.add('onto'); return; }
+  onto.style.transform = 'translate(' + (drag.el.offsetLeft - onto.offsetLeft) + 'px,' +
+                                        (drag.el.offsetTop  - onto.offsetTop)  + 'px)';
+}
 
 function drop() {
   if (!drag) return;
   const { el, i, onto } = drag;
-  el.classList.remove('lift');
-  el.style.transform = '';
-  if (onto) onto.classList.remove('onto');
   drag = null;
 
-  if (!onto) return;                 // let go over nothing: everyone stays put
-  swapSeats(i, +onto.dataset.i);
-  done();                            // and the two of them slide past each other
+  if (onto) {
+    // The tiles are left exactly where they look, and the render that follows
+    // carries them on from there rather than putting them back first.
+    onto.classList.remove('onto');
+    swapSeats(i, +onto.dataset.i);
+    done();
+    return;
+  }
+
+  // Let go over nothing and everyone stays put; the tile finds its own way home.
+  el.style.transition = 'transform 200ms ease-out';
+  el.style.transform  = '';
+  setTimeout(() => {
+    el.classList.remove('lift');
+    el.style.transition = '';
+  }, 200);
 }
 
 // On the window, not the table: a finger lifted somewhere else still ends the

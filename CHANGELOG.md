@@ -28,9 +28,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   one entry being replaced after each press from inside the back handler — which an
   installed app quietly ignores, so nothing was left to absorb the next press.
 - Seating is now done by **dragging a player to the chair you want them in**, rather than
-  tapping one seat and then another. The seat under your finger lights up, the two players
-  slide past each other when you let go, and letting go anywhere else leaves everyone where
-  they were.
+  tapping one seat and then another. Whoever is sitting there stands up and steps into the
+  chair you are leaving, so the swap is shown rather than described and you can see the
+  table you would end up with before you let go. Letting go anywhere else puts everyone
+  back. An empty chair has nobody to move, so it lights up instead.
 - The standings re-sort in front of you when a hand is scored, so a player coming from
   last to first is something you watch happen rather than something you find already done.
   It is the one number movement in the app that carries information.

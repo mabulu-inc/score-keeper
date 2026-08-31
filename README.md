@@ -19,8 +19,11 @@ Four players, two teams, first to 40.
 
 1. **New game.** Type the four names, or tap them from the list of people you've
    played with before.
-2. **Seat them.** Partners sit opposite each other on the diagram. Tap two seats to
-   swap. Pick who deals first — after that the deal moves clockwise on its own.
+2. **Seat them.** Partners sit opposite each other on the diagram. **Drag a player to the
+   chair you want them in.** Whoever is sitting there stands up and steps into the chair
+   you're leaving, so you see the table you'd get before you let go — and letting go
+   anywhere else puts everyone back. An empty chair has nobody to move, so it lights up
+   instead. Pick who deals first; after that the deal moves clockwise on its own.
 3. **Play.** Each hand is three taps in a row: the bidding, the trump, and how many
    tricks the bidding team took. The score does itself.
 
@@ -274,8 +277,8 @@ the setup screen does one thing.
 
 Finished games are kept with their full hand-by-hand record, under **☰ Menu → Past
 games**. **Play again** on any of them brings the same people back and moves the first
-deal on one place — so a rematch is two taps. Euchre seats can still be swapped before you
-start, for when the partnerships change.
+deal on one place — so a rematch is two taps. Euchre players can still be dragged into
+different chairs before you start, for when the partnerships change.
 
 Everything lives in browser storage on that device. Nothing is uploaded, there is no
 account, and the app makes no network requests once it has loaded.
