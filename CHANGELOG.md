@@ -93,6 +93,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- The Rules row in the menu says *both games*, rather than naming whichever game the card
+  would open on — which read as though that were the only game with rules written up.
+  Every menu row now describes what is inside it, the way *5 remembered* and *4 finished*
+  already did.
 - The rules card shows **one game at a time**. It used to stack every game onto a single
   page, which turned a reminder you were meant to skim into something you had to search.
   It now opens on the game the screen implies — the one being played or set up — with

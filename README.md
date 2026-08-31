@@ -164,7 +164,8 @@ rules card covers what they leave out: the bidding ladder and screw-the-dealer f
 and for Flip 7 the action cards, which sit on the table but score nothing and so never
 appear in the tally.
 
-**One game at a time, always.** Stacking every game onto one page turns a reminder you were
+The menu row says *both games*, because that is what is in there. **One game at a time**
+is how the card itself behaves: Stacking every game onto one page turns a reminder you were
 meant to skim into something you have to search. The card opens on the game the screen
 implies — the one you're playing, or the one you're setting up — and a row of chips at the
 top switches to another. On the home screen, where nothing is implied, it opens on the

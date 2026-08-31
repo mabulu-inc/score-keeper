@@ -1201,7 +1201,8 @@ function log7(g) {
    ========================================================================== */
 function viewMenu() {
   const g = S.game;
-  const which = KINDS[rulesFocus()].game;
+  const games = Object.keys(KINDS).length;
+  const which = games === 2 ? 'both games' : games + ' games';
 
   let h = '<div class="card">' +
     sect('players', 'Players',    active().length + ' remembered',                     playersBody) +
