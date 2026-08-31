@@ -7,6 +7,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Busted** moves on to the next player by itself. A bust ends that player's hand, so
+  there was never anything else to say about them; tapping it again on somebody already
+  marked takes it back and stays with them.
 - Flip 7 says **who gets the first card**, not just who deals — the thing a distracted
   table actually loses. It is still all the app knows about a hand in progress: nobody has
   to tell it about each card as it lands.

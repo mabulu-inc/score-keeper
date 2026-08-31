@@ -401,7 +401,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v23';                       // bump together with CACHE in sw.js
+const BUILD = 'v24';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -698,13 +698,17 @@ const ACT = {
 
   x27() { const e = cur(); e.x2 = !e.x2; done(); },
 
-  // A bust is worth nothing however far the hand got, so it takes the cards
-  // with it rather than leaving them on screen to be read as a score.
+  /* A bust is worth nothing however far the hand got, so it takes the cards
+     with it rather than leaving them on screen to be read as a score. It also
+     ends that player's hand, so it moves on to the next one — there is nothing
+     else to say about them. Tapping it again on somebody already marked takes
+     it back and stays put, for when the wrong name was open. */
   bust7() {
     const e = cur();
-    e.bust = !e.bust;
-    if (e.bust) { e.nums = []; e.adders = []; e.x2 = false; }
-    done();
+    if (e.bust) { e.bust = false; done(); return; }
+    e.bust = true;
+    e.nums = []; e.adders = []; e.x2 = false;
+    ACT.next7();
   },
 
   next7() {
