@@ -355,7 +355,7 @@ const RULES = {
     ['Scoring',    'Make a bid of 3, 4 or 5 and you score every trick you took, overtricks ' +
                    'included. Partner’s best scores 12 and alone scores 24, but only on all six.'],
     ['Set',        'Fall short and your score is docked what you bid: −3, −4 or −5, −12 for ' +
-                   'partner’s best, −24 for an alone. Scores go negative, and the app shows it.'],
+                   'partner’s best, −24 for an alone. A team’s score can go below nothing.'],
     ['Defenders',  'The other team banks a point a trick every hand, made or set.']
   ],
 
@@ -612,7 +612,7 @@ const solo = g => !!rulesOf(g).solo;
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v33';                       // bump together with CACHE in sw.js
+const BUILD = 'v34';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
