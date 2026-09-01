@@ -429,14 +429,18 @@ const FLIP7 = {
   },
 
   /* The tally already shows the arithmetic, so this covers what it leaves out:
-     the action cards, which are on the table but score nothing. */
+     the action cards, which are on the table but score nothing — and which are
+     aimed rather than suffered, the part most often played wrong. */
   rules: [
     ['Goal',       'First to 200. Play as many hands as that takes.'],
     ['Your turn',  'Hit for another card, or stay and bank what you are holding.'],
     ['Bust',       'A number you already hold ends your hand at nothing — unless you are ' +
                    'holding Second Chance, which discards the duplicate instead.'],
-    ['Freeze',     'Ends a player’s hand where it stands. They bank what they have.'],
-    ['Flip Three', 'That player takes three more cards, one at a time.'],
+    ['Freeze',     'Ends a hand where it stands, and that player banks what they have. ' +
+                   'Whoever is dealt it says who it lands on — themselves or anybody else ' +
+                   'still in the hand.'],
+    ['Flip Three', 'Three more cards, one at a time. Whoever is dealt it says who takes ' +
+                   'them — themselves or anybody else still in the hand.'],
     ['Flip 7',     'Seven different numbers ends the whole hand at once, and is worth 15 on top.'],
     ['Scoring',    'The numbers add up, ×2 doubles that total, and the + cards land after it.']
   ],
@@ -448,7 +452,10 @@ const FLIP7 = {
                   'Watch the high numbers: there are twelve 12s in the deck and only one 1.'],
     ['Flip 7',    'Seven different numbers ends the hand for everyone, not only for you. ' +
                   'Chasing one from behind takes the leaders down with you, which is worth ' +
-                  'more than the 15.']
+                  'more than the 15.'],
+    ['Action cards', 'A Freeze or a Flip Three is yours to aim. Freeze the player sitting ' +
+                  'on the most, and hand a Flip Three to whoever is holding enough numbers ' +
+                  'that three more will bust them.']
   ],
 
   /* The number cards add up, ×2 doubles that total and nothing else, the +
@@ -605,7 +612,7 @@ const solo = g => !!rulesOf(g).solo;
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v32';                       // bump together with CACHE in sw.js
+const BUILD = 'v33';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.

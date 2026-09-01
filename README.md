@@ -156,7 +156,9 @@ cards you didn't take go dead, because there is no eighth card to tap.
 cards with it rather than leaving them on screen to be read as a score.
 
 Freeze, Flip Three and Second Chance are not on the grid. They are worth nothing, so
-there is nothing to tally.
+there is nothing to tally. Freeze and Flip Three are still worth reading up on under **☰
+Menu → Rules**: whoever is dealt one chooses who it lands on, themselves or anybody else
+still in the hand, which is the part most tables play wrong.
 
 The button at the bottom won't score the hand until every player has been dealt with,
 and it says how many are still to do rather than making you hunt for who was missed.
@@ -302,8 +304,9 @@ Every game explains itself, and the app refuses to start if one doesn't — see 
 fourth game*. A reminder, not the rulebook, though: deliberately only the things the screen
 doesn't already say. The trick buttons, the Flip 7 tally and the Farkle turn all show you
 the arithmetic as you play, so the rules card covers what they leave out: the bidding
-ladder and screw-the-dealer for euchre; for Flip 7 the action cards, which sit on the table
-but score nothing and so never appear in the tally; and for Farkle the scoring table
+ladder and screw-the-dealer for euchre; for Flip 7 the action cards, which score nothing
+and so never appear in the tally, and which are aimed by whoever is dealt them rather than
+simply suffered; and for Farkle the scoring table
 itself, which is the one thing every table plays a little differently.
 
 The menu row says how many games are in there. **One game at a time**

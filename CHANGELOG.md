@@ -76,7 +76,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Deliberately only what the screen does not already say: the trick buttons and the Flip 7
   tally show the arithmetic as you play, so the card covers the bidding ladder, screw the
   dealer, and the Flip 7 action cards — Freeze, Flip Three and Second Chance — which sit on
-  the table but score nothing and so never appear in the tally.
+  the table but score nothing and so never appear in the tally. Freeze and Flip Three say
+  that whoever is dealt one chooses who it lands on, themselves or anybody else still in
+  the hand — the part most often played wrong, and the reason the card is worth reading.
 - **Past games** finally shows what was always being recorded. Standings across everything
   played — games, wins and win rate, with a euchre win counting for both partners — a head
   to head grid, and every finished game openable to its full hand-by-hand log, exactly as
