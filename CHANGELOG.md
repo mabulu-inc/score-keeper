@@ -166,6 +166,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   **⠿** handle now; everywhere else on the row scrolls the page as normal. A vertical list
   cannot tell a scroll from a reorder by direction — they are the same gesture — so the
   only honest answer is to ask which one you meant. The euchre table works the same way.
+- **End game moved into the menu**, under *Leave this game for now*, so both ways out of a
+  game are in one place with the one you almost always want first. It was in the footer,
+  which put the only destructive control in the app right where a thumb reaching for Undo
+  lands. The footer now holds Undo alone.
+- The drag handle is a little wider — a 44px target rather than 34.
 - **Undo says what it will take back** — *Undo hand 2*, *Undo the bidding*, *Undo the
   trump* — rather than leaving you to guess. In Flip 7 the tally is made of toggles that
   undo themselves, so the only thing on the stack is the hand scored before this one, which

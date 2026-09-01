@@ -266,10 +266,15 @@ If you ever report something odd, this line says which copy you saw it in.
 
 ### Leaving a game
 
-A game in progress used to have only one exit — *End game*, which discarded it. The menu
-has **Leave this game for now**, which doesn't. The game keeps its place and the home
-screen offers it back; starting a different game is the only thing that discards it, and
-the home screen says so before you do.
+Both ways out are in the menu, together, with the one you almost always want first.
+
+**Leave this game for now** keeps the game exactly where it is; the home screen offers it
+back and says which hand it reached. **End game** below it, in red, discards it — and asks
+first, on the game screen, so you can see what you are about to throw away.
+
+The footer holds Undo and nothing else. End game used to sit there, which put the only
+destructive control in the app under the thumb of somebody reaching for Undo, and left the
+gentler exit hidden in a menu. Back does the gentle one too.
 
 # Both games
 

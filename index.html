@@ -233,12 +233,12 @@
      swiped over, and in a vertical list a scroll and a reorder are the same
      gesture — so the row itself has to stay ordinary or every attempt to
      scroll moves somebody. */
-  .grip { flex: none; width: 34px; height: 34px; display: flex;
+  .grip { flex: none; width: 44px; height: 44px; display: flex;
           align-items: center; justify-content: center;
           color: var(--muted); font-size: 15px; line-height: 1; letter-spacing: 2px;
           touch-action: none; cursor: grab; }
   .grip:active { cursor: grabbing; color: var(--text); }
-  .seat .grip { position: absolute; left: 0; bottom: 0; width: 30px; height: 30px;
+  .seat .grip { position: absolute; left: 0; bottom: 0; width: 36px; height: 36px;
                 font-size: 13px; }
 
   .order .ord { display: flex; align-items: center; gap: 10px; padding: 11px 4px;
@@ -417,7 +417,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v29';                       // bump together with CACHE in sw.js
+const BUILD = 'v30';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -775,7 +775,8 @@ const ACT = {
 
   /* ---- getting around ---- */
   home()      { S.game = null; S.undo = []; confirmEnd = false; away = false; done(); },
-  askEnd()    { confirmEnd = true; done(); },
+  // Asked from the menu, answered on the game — the panel gets out of the way.
+  askEnd()    { confirmEnd = true; menuOn = false; done(); },
   keepGoing() { confirmEnd = false; done(); },
   stay()      { confirmLeave = false; done(); },
   scores()    { showScores = !showScores; done(); },
@@ -980,7 +981,7 @@ function footer(g, elsewhere) {
            '<button data-act="keepGoing">Keep playing</button>' +
            '<button class="warn" data-act="home">Discard</button></div></div>';
   }
-  return '<div class="row">' + undo + '<button data-act="askEnd">End game</button></div>';
+  return undo ? '<div class="row">' + undo + '</div>' : '';
 }
 
 // The middle of the table holds the contract: what has been bid, and in what.
@@ -1514,9 +1515,16 @@ function menuPanel() {
             row('games',   'Past games', S.history.length ? S.history.length + ' finished'
                                                           : 'none yet');
 
+  /* Both ways out of a game, together, with the one you almost always want
+     first. End game used to sit in the footer where the common action goes,
+     which put the only destructive control in the app under the thumb of
+     somebody reaching for Undo. */
   if (g && !away) {
-    h += '<div class="foot"><button style="width:100%" data-act="stepOut">' +
-         'Leave this game for now</button></div>';
+    h += '<div class="foot">' +
+           '<button style="width:100%" data-act="stepOut">Leave this game for now</button>' +
+           '<button class="warn" style="width:100%;margin-top:8px" data-act="askEnd">' +
+             'End game</button>' +
+         '</div>';
   }
   return h + '<div class="foot">' + buildLine() + '</div></div></div>';
 }
