@@ -8,6 +8,12 @@ Three games so far: **bid euchre**, **Flip 7** and **Farkle**. Tap one on the ho
 screen. Everything that is not the game in front of you — the player list, the rules, and
 every game you've ever finished — is behind **☰ Menu**, in the same place on every screen.
 
+Picking a game shows you what you picked before it asks who is playing: the objective, the
+rules, the scoring, and a few things worth knowing that no screen can tell you while you
+play. It is a page you pass through rather than a gate — **Pick the players** is pinned to
+the bottom of the screen from the moment it appears, so skipping it is one tap from a
+standing start and never a scroll. A rematch doesn't pass this way at all.
+
 No build step, no dependencies, no server, no accounts. One HTML file, a service
 worker, and three icons.
 
@@ -289,8 +295,11 @@ still theirs to correct.
 
 ### Rules
 
+The same two tables the briefing shows when you pick a game: the rules, and **Worth
+knowing** under them, so the hints are there mid-game and not only at the start.
+
 Every game explains itself, and the app refuses to start if one doesn't — see *Adding a
-third game*. A reminder, not the rulebook, though: deliberately only the things the screen
+fourth game*. A reminder, not the rulebook, though: deliberately only the things the screen
 doesn't already say. The trick buttons, the Flip 7 tally and the Farkle turn all show you
 the arithmetic as you play, so the rules card covers what they leave out: the bidding
 ladder and screw-the-dealer for euchre; for Flip 7 the action cards, which sit on the table
@@ -439,15 +448,17 @@ python3 -m http.server 8000
 
 Each game is a `RULES`-shaped block at the top of the script — `RULES` for bid euchre,
 `FLIP7` for Flip 7, `FARKLE` for Farkle — plus the handful of views that draw it. A block
-carries its own `rules` copy for the menu, so a new game explains itself without touching
-the menu. It also carries the words its screens need — what the first player does, what
+carries its own `rules` and `strategy` copy, so a new game explains itself — in the menu
+and on the briefing you get when you pick it — without touching either. It also carries
+the words its screens need — what the first player does, what
 one round is called, the line it gets on the home screen — so the shared views read them
 rather than asking which game they are drawing.
 
 **A game without rules is not a finished game**, and that isn't left to memory: a check at
-load throws if any block in `KINDS` has no `rules`, so the app won't start at all. It fails
-at your desk or not at all — there is no version of this where a game ships that the menu
-can't explain.
+load throws if any block in `KINDS` has no `rules` or no `strategy`, so the app won't start
+at all. It fails at your desk or not at all — there is no version of this where a game ships
+that the menu can't explain, or that hands a new player a screen and no idea what to do with
+it.
 
 Having written three, what they actually share turns out to be small, and only that much
 is shared: a **name**, a **target**, a **way of scoring one hand**, and that `rules` list.

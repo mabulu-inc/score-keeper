@@ -7,6 +7,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Picking a game now shows you what you picked** before it asks who is playing — the
+  objective, the rules, the scoring, and a short *Worth knowing* on how the game is
+  actually played, which is the part no screen can tell you while you are playing it.
+- That page is passed through, not a gate. **Pick the players** is pinned to the bottom of
+  the screen from the moment it appears, so skipping the reading is one tap from a standing
+  start and never a scroll — and it is the same button whether you read it or not. A
+  rematch does not pass this way at all.
+- **Worth knowing** appears under the rules in **☰ Menu → Rules** as well, so the hints are
+  there mid-game and not only at the start. A game now carries both halves of its own write-up,
+  and the app still refuses to start if either is missing.
 - **Farkle** — six dice, one player at a time, first past 10,000. A third game on the home
   screen, sharing the players, the past-games board and the head-to-head record with the
   other two.

@@ -359,6 +359,17 @@ const RULES = {
     ['Defenders',  'The other team banks a point a trick every hand, made or set.']
   ],
 
+  /* Not the rules — what the rules are worth knowing about. Three each, and
+     the same shape as the rules, because they are read in the same table. */
+  strategy: [
+    ['Bidding',   'Bid what you can count on taking, not what you hope for. Between four ' +
+                  'tricks and three there are eight points, not one: you score 4 or you lose 4.'],
+    ['Trump',     'Length beats height. Five small trumps take more tricks than two big ones, ' +
+                  'because after two rounds of trump nobody else has any left.'],
+    ['Defending', 'There is no hand not worth playing out — you bank a point a trick whatever ' +
+                  'happens, and setting a bid of 5 costs them ten points against making it.']
+  ],
+
   trumps: [
     { k: 'H',  label: '♥︎',    name: 'hearts',   red: true },
     { k: 'D',  label: '♦︎',    name: 'diamonds', red: true },
@@ -428,6 +439,16 @@ const FLIP7 = {
     ['Flip Three', 'That player takes three more cards, one at a time.'],
     ['Flip 7',     'Seven different numbers ends the whole hand at once, and is worth 15 on top.'],
     ['Scoring',    'The numbers add up, ×2 doubles that total, and the + cards land after it.']
+  ],
+
+  strategy: [
+    ['When to stay', 'The risk is not the next card, it is how many you are already holding — ' +
+                  'each one is another way to bust, and what you hold is already worth something.'],
+    ['Counting',  'Every card face up in front of anybody is a card that cannot come to you. ' +
+                  'Watch the high numbers: there are twelve 12s in the deck and only one 1.'],
+    ['Flip 7',    'Seven different numbers ends the hand for everyone, not only for you. ' +
+                  'Chasing one from behind takes the leaders down with you, which is worth ' +
+                  'more than the 15.']
   ],
 
   /* The number cards add up, ×2 doubles that total and nothing else, the +
@@ -505,6 +526,17 @@ const FARKLE = {
                   'A turn ends only when it is banked or farkled.']
   ],
 
+  strategy: [
+    ['When to bank', 'Three dice or fewer is where turns die — better than one roll in four ' +
+                  'comes up with nothing. Holding several hundred with three left, banking is ' +
+                  'usually the better bet.'],
+    ['Hot dice', 'Six dice come up empty about one roll in forty, so taking all six out and ' +
+                  'rolling again is close to free. It is the cheapest roll in the game.'],
+    ['Leaving dice', 'You do not have to take out everything that scores. A lone 5 is 50 and ' +
+                  'costs you a die — leaving it on the table often buys better odds than the ' +
+                  '50 was worth.']
+  ],
+
   /* Passing the target does not end it. Everyone behind in the order has a
      turn in hand, and a turn at Farkle is worth thousands. */
   ready: g => g.hands.length % g.players.length === 0,
@@ -550,9 +582,11 @@ const KINDS   = { euchre: RULES, flip7: FLIP7, farkle: FARKLE };
 
 /* A game nobody wrote up is not a finished game. This refuses to start rather
    than shipping a menu that explains one game and throws on the other, so the
-   rule cannot be forgotten: it is broken at the desk or not at all. */
+   rule cannot be forgotten: it is broken at the desk or not at all. Picking a
+   game now shows you what you picked, so the hints are held to the same rule. */
 for (const k in KINDS) {
   if (!KINDS[k].rules || !KINDS[k].rules.length) throw new Error(k + ' has no rules');
+  if (!KINDS[k].strategy || !KINDS[k].strategy.length) throw new Error(k + ' has no hints');
 }
 const kindOf  = g => g.kind || 'euchre';    // games saved before Flip 7 are euchre
 const rulesOf = g => KINDS[kindOf(g)];
@@ -571,7 +605,7 @@ const solo = g => !!rulesOf(g).solo;
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v31';                       // bump together with CACHE in sw.js
+const BUILD = 'v32';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -648,6 +682,7 @@ const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(
 const fmt = n => (n < 0 ? '\u2212' : '') +
                  String(Math.abs(n)).replace(/\B(?=(\d{3})+$)/g, ',');
 const delta = n => (n > 0 ? '+' : '') + fmt(n);
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
 /* ==========================================================================
    GAME STATE
@@ -764,13 +799,19 @@ function takeTurn(g, v) {
 const ACT = {
 
   /* ---- setting the table ---- */
+  /* Picking a game shows you what you picked before it asks who is playing.
+     It is the first step of setting up rather than a screen of its own, so
+     Back still means home and nothing new has to be kept in step. A rematch
+     does not pass this way: `again` builds a setup without it. */
   newGame(d) {
     const kind = KINDS[d.kind] ? d.kind : 'euchre';
     S.setup = KINDS[kind].solo
-      ? { kind, players: [] }
-      : { kind, seats: [null, null, null, null], first: null };
+      ? { kind, brief: true, players: [] }
+      : { kind, brief: true, seats: [null, null, null, null], first: null };
     done();
   },
+
+  pickPlayers() { S.setup.brief = false; scrollTo(0, 0); done(); },
 
   addPlayer() {
     const el = document.getElementById('newname');
@@ -1202,6 +1243,7 @@ function render(keepFocus) {
 
   const wasAt = seatsBefore();   // where each player sat before this render
   const view = menuTab            ? viewSection()
+             : S.setup && S.setup.brief ? viewBriefing()
              : S.setup            ? (one ? viewSetupSolo() : viewSetup())
              : S.game && !away    ? (one ? viewGameSolo() : viewGame())
                                   : viewHome();
@@ -1259,6 +1301,39 @@ function fmtDate(iso) {
     sameYear ? { month: 'short', day: 'numeric' }
              : { year: 'numeric', month: 'short', day: 'numeric' });
 }
+
+/* ---- what you just picked ----------------------------------------------
+   Objective, rules and scoring are the block the menu already reads, so a
+   game is written up once and cannot drift into saying two things. The hints
+   are the part no screen can show you while you play.
+
+   It is a page you pass through, not a gate. The way on is pinned to the
+   bottom from the moment it appears, so skipping it is one tap from a
+   standing start and never a scroll — and it is the same button whether you
+   read the thing or not.
+   ------------------------------------------------------------------------ */
+function viewBriefing() {
+  const R = KINDS[S.setup.kind];
+
+  return '<div class="banner">New game</div>' +
+    '<div class="card">' +
+      '<div class="hi"><div class="big">' + R.game + '</div>' +
+        '<div class="tiny muted">' + cap(R.home) + '</div></div>' +
+      ruleRows(R.rules) +
+    '</div>' +
+    '<div class="card"><div class="label">Worth knowing</div>' + ruleRows(R.strategy) + '</div>' +
+    '<div class="row act">' +
+      '<button data-act="cancelSetup" style="flex:1">Cancel</button>' +
+      '<button class="primary" style="flex:2" data-act="pickPlayers">Pick the players</button>' +
+    '</div>';
+}
+
+// The rules and the hints are the same shape — a short label and a line — so
+// they are the same table, drawn here and in the menu.
+const ruleRows = rows => '<table class="tab"><tbody>' + rows.map(r =>
+  '<tr><td class="muted" style="vertical-align:top;white-space:nowrap">' + r[0] + '</td>' +
+      '<td style="text-align:left;padding-left:12px">' + r[1] + '</td></tr>').join('') +
+  '</tbody></table>';
 
 /* ---- setting the table ---- */
 
@@ -1964,11 +2039,9 @@ function rulesBody() {
       '<button class="' + (x === k ? 'on' : '') + '" data-act="rulesKind" data-k="' + x + '">' +
       KINDS[x].game + '</button>').join('') +
     '</div>' +
-    '<table class="tab"><tbody>' +
-    R.rules.map(r =>
-      '<tr><td class="muted" style="vertical-align:top;white-space:nowrap">' + r[0] + '</td>' +
-          '<td style="text-align:left;padding-left:12px">' + r[1] + '</td></tr>').join('') +
-    '</tbody></table>';
+    ruleRows(R.rules) +
+    '<div class="label" style="margin:22px 0 8px">Worth knowing</div>' +
+    ruleRows(R.strategy);
 }
 
 /* ==========================================================================
