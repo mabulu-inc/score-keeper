@@ -4,9 +4,9 @@ A card game score keeper that runs in the browser, works offline, and is built t
 put down. The point is not to use it — it's to stop the table arguing about whether
 that was 3 or 4 tricks, in one tap, and get back to the game.
 
-Two games so far: **bid euchre** and **Flip 7**. Tap one on the home screen. Everything
-that is not the game in front of you — the player list, the rules, and every game you've
-ever finished — is behind **☰ Menu**, in the same place on every screen.
+Three games so far: **bid euchre**, **Flip 7** and **Farkle**. Tap one on the home
+screen. Everything that is not the game in front of you — the player list, the rules, and
+every game you've ever finished — is behind **☰ Menu**, in the same place on every screen.
 
 No build step, no dependencies, no server, no accounts. One HTML file, a service
 worker, and three icons.
@@ -169,6 +169,98 @@ First to **200** wins.
 
 The 0 card counts as one of your seven.
 
+# Farkle
+
+Six dice, one player at a time, first past 10,000. A turn lasts exactly as long as the
+nerve holds, and the app's whole job is to hold the running total while it does.
+
+## Using it
+
+1. **New game → Farkle.** Tap in everyone playing and drag the **⠿** handles until the
+   list matches how you are sitting. Play starts at the top and works down.
+2. **Roll the dice on the table.** The app has no dice in it and never asks for a roll —
+   only for what came out of one.
+3. **Tap the dice taken out for scoring**, one at a time, as they are set aside. The
+   total is on screen as you go.
+4. **Roll again**, or **Bank** it. If the roll had nothing in it, **Farkled** — and the
+   button says what that costs before you press it.
+
+### Tapping what was set aside
+
+The six faces along the top are drawn rather than typed, because the Unicode dice come out
+of a phone's font too small to read at arm's length. Tap a face and that die joins the row
+below it; tap one in that row and it goes back. Nothing about a roll is committed until
+the turn rolls on, banks or farkles.
+
+```
+   ⚀   ⚁   ⚂   ⚃   ⚄   ⚅        ← the dice on the table
+
+   [⚀] [⚀] [⚄]                   ← taken out of this roll
+
+              250
+        two 1s · 200 + a 5 · 50
+```
+
+**Every die you take out has to score**, and the app holds you to it: keep a 3 and it is
+outlined in red, the line underneath names it, and both Roll again and Bank grey out until
+it goes back. A die that scores nothing is not counted quietly as nought — it is the roll
+being read wrong, and the app says so.
+
+Combinations only count **within the roll they came out of**, so each roll is scored on its
+own and the ones already put by are listed above the total with what each was worth.
+
+### Hot dice
+
+Take out all six and the row of faces lights up again with all six on the table, the turn
+total intact. The app works it out from the count — there is nothing to tell it, and no
+limit to how many times round a turn can go.
+
+### How much am I risking?
+
+**If you roll again**, at the foot of the turn, is the only question a Farkle table ever
+asks. It is asked rather than shown, because a running commentary on the odds plays the
+dice for you:
+
+```
+ If you roll again                                        hide
+
+ Roll again and 750 goes back on the table. A farkle takes all of it.
+ Rolling 3 dice: about 28% of rolls come up with nothing at all, or one roll in 4.
+ Bank instead and Ann is on 3,150, 6,850 short of 10,000.
+```
+
+Three things, because they are the three halves of the decision: what is at stake, how
+likely it is to go, and what stopping now is actually worth. The chance is the real one for
+the number of dice about to be rolled — a hair over 2% on six, two rolls in three on one —
+and it accounts for hot dice, so the six you would get back are the six it quotes.
+
+### Passing the post
+
+First past 10,000 does not end it. Anyone who has had fewer turns gets one more, and the
+highest score at the end of that round wins — a turn at Farkle is worth thousands, and
+ending on the leader's own turn would hand the game to whoever sat down first. The banner
+says whose lead is being chased and that there is one turn each left to answer it.
+
+## Scoring
+
+| | |
+|---|---|
+| Each **1** | **100** |
+| Each **5** | **50** |
+| Three of a number | its face **× 100** — three 1s are **1000** |
+| Four alike, five, six | **1000**, **2000**, **3000** — whatever the number |
+| A run of **1 to 6** | **1500** |
+| **Three pairs** | **1500** |
+| **Two triplets** | **2500** |
+| A roll with none of the above | **farkle** — the whole turn goes |
+
+Nothing else scores on its own: a lone 2, 3, 4 or 6 is worth nothing and cannot be taken
+out. Four alike being flat means four 1s are worth no more than three of them — that is the
+printed rule, quirk and all.
+
+Tables play a dozen variants of the four-, five- and six-of-a-kind rules. The whole table is
+written out in **☰ Menu → Rules**, so nobody has to remember which house they are in.
+
 # The menu
 
 **☰ Menu**, top right, on every screen — and it says ☰ Menu whether it is open or not,
@@ -199,12 +291,13 @@ still theirs to correct.
 
 Every game explains itself, and the app refuses to start if one doesn't — see *Adding a
 third game*. A reminder, not the rulebook, though: deliberately only the things the screen
-doesn't already say. The trick buttons and the Flip 7 tally show you the arithmetic as you play, so the
-rules card covers what they leave out: the bidding ladder and screw-the-dealer for euchre,
-and for Flip 7 the action cards, which sit on the table but score nothing and so never
-appear in the tally.
+doesn't already say. The trick buttons, the Flip 7 tally and the Farkle turn all show you
+the arithmetic as you play, so the rules card covers what they leave out: the bidding
+ladder and screw-the-dealer for euchre; for Flip 7 the action cards, which sit on the table
+but score nothing and so never appear in the tally; and for Farkle the scoring table
+itself, which is the one thing every table plays a little differently.
 
-The menu row says *both games*, because that is what is in there. **One game at a time**
+The menu row says how many games are in there. **One game at a time**
 is how the card itself behaves: Stacking every game onto one page turns a reminder you were
 meant to skim into something you have to search. The card opens on the game the screen
 implies — the one you're playing, or the one you're setting up — and a row of chips at the
@@ -276,7 +369,7 @@ The footer holds Undo and nothing else. End game used to sit there, which put th
 destructive control in the app under the thumb of somebody reaching for Undo, and left the
 gentler exit hidden in a menu. Back does the gentle one too.
 
-# Both games
+# Every game
 
 ## Staying out of the way
 
@@ -299,9 +392,11 @@ Under the running score, every hand is listed the way you'd have written it down
 each player's running total beside what they scored. That's the scratchpad, kept for
 you.
 
-Either game is won by whoever is **ahead** once the target is passed — a hand can push
-two players or two teams past the post at once, and the higher score takes it. If that
-leaves them level, nobody has won: the app says so and deals the next hand.
+A game is won by whoever is **ahead** once the target is passed — a hand can push two
+players or two teams past the post at once, and the higher score takes it. If that leaves
+them level, nobody has won: the app says so and deals the next hand. Farkle adds one
+condition on top: the round has to finish first, so everyone has had the same number of
+turns.
 
 ## Between games
 
@@ -313,7 +408,8 @@ the setup screen does one thing.
 Finished games are kept with their full hand-by-hand record, under **☰ Menu → Past
 games**. **Play again** on any of them brings the same people back and moves the first
 deal on one place — so a rematch is two taps. Euchre players can still be dragged into
-different chairs before you start, for when the partnerships change.
+different chairs before you start, for when the partnerships change; in Flip 7 and Farkle
+the order comes back as it was, carried on from where the last game stopped.
 
 Everything lives in browser storage on that device. Nothing is uploaded, there is no
 account, and the app makes no network requests once it has loaded.
@@ -339,28 +435,37 @@ python3 -m http.server 8000
 # then http://localhost:8000
 ```
 
-## Adding a third game
+## Adding a fourth game
 
 Each game is a `RULES`-shaped block at the top of the script — `RULES` for bid euchre,
-`FLIP7` for Flip 7 — plus the handful of views that draw it. A block carries its own
-`rules` copy for the menu, so a new game explains itself without touching the menu.
+`FLIP7` for Flip 7, `FARKLE` for Farkle — plus the handful of views that draw it. A block
+carries its own `rules` copy for the menu, so a new game explains itself without touching
+the menu. It also carries the words its screens need — what the first player does, what
+one round is called, the line it gets on the home screen — so the shared views read them
+rather than asking which game they are drawing.
 
 **A game without rules is not a finished game**, and that isn't left to memory: a check at
 load throws if any block in `KINDS` has no `rules`, so the app won't start at all. It fails
 at your desk or not at all — there is no version of this where a game ships that the menu
 can't explain.
 
-Having written two, what they actually share turns out to be small, and only that much
-is shared: a **name**, a **target**, a **way of scoring one hand**, and that `rules`
-list. `finish()` ends either game the same way, `rosterCard()` picks the players for
-either, `logTable()` prints either game's hands for the live scoreboard and the board
-alike, and `footer()` and the storage, undo and history behind them never had to know
-which game was being played.
+Having written three, what they actually share turns out to be small, and only that much
+is shared: a **name**, a **target**, a **way of scoring one hand**, and that `rules` list.
+`finish()` ends any of them the same way, `rosterCard()` picks the players, `logTable()`
+prints the hands for the live scoreboard and the board alike, and `footer()` and the
+storage, undo and history behind them never had to know which game was being played.
 
-Everything else — seats against a flat list, teams against individuals, three guided
-taps against a card grid — stayed separate, because pushing them together would have
-cost more than it saved. A third game means a third block, and another look at where
-the line falls.
+The third game paid that back. Farkle records a **turn as a hand of one** — scored against
+the player who took it, in the shape Flip 7 already used — so the totals, the standings,
+the past-games board, and players joining and leaving mid-game all worked on the day they
+were written, without being told that dice existed. What Farkle needed of its own was one
+screen and one predicate: `ready()`, which holds the end of a game back until the round is
+finished, and which the other two simply do not have.
+
+Everything else — seats against a flat list, teams against individuals, three guided taps
+against a card grid against a turn that does not end — stayed separate, because pushing
+them together would have cost more than it saved. A fourth game means a fourth block, and
+another look at where the line falls.
 
 ## Licence
 

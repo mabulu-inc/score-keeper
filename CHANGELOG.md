@@ -7,6 +7,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Farkle** — six dice, one player at a time, first past 10,000. A third game on the home
+  screen, sharing the players, the past-games board and the head-to-head record with the
+  other two.
+- Farkle is played by **tapping the dice taken out for scoring**, one at a time, as they
+  are set aside. The six faces are drawn rather than typed, so they read at arm's length.
+  Tap a face to take a die out, tap it again in the row below to put it back — nothing is
+  committed until the turn rolls on, banks or farkles. The turn total, and the sum making
+  it, are on screen the whole time.
+- **Every die you take out has to score, and the app holds you to it.** Keep a die that is
+  worth nothing and it is outlined in red, named underneath, and both *Roll again* and
+  *Bank* stay greyed until it goes back. Nothing is quietly counted as nought.
+- **Hot dice.** Take out all six and the table fills again with all six, the turn total
+  intact, however many times round it goes. There is nothing to tell the app — it works it
+  out from the count.
+- **If you roll again** answers the only question a Farkle table asks: what is on the table,
+  how likely the next roll is to take it, and what banking instead would be worth. It is
+  asked rather than shown, because a running commentary on the odds plays the dice for you.
+  The odds are the real ones for the number of dice about to be rolled, hot dice included.
+- **Passing 10,000 does not end a game of Farkle.** Anyone with fewer turns gets one more,
+  and the highest score at the end of that round wins — a turn is worth thousands, and
+  ending on the leader's own turn would hand it to whoever sat down first. The banner says
+  whose lead is being chased.
+- Each Farkle turn is recorded like a hand, so the standings, the running log — one row a
+  round, farkles in red — Undo, players joining and leaving mid-game, and *Play again* all
+  work exactly as they do in the other two games.
+
 - **Busted** moves on to the next player by itself. A bust ends that player's hand, so
   there was never anything else to say about them; tapping it again on somebody already
   marked takes it back and stays with them.
@@ -162,6 +188,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Scores over a thousand are **written with a comma**, now that a game counts that high.
 - **Fixed: swiping to scroll a seating list moved players instead.** Rows are dragged by a
   **⠿** handle now; everywhere else on the row scrolls the page as normal. A vertical list
   cannot tell a scroll from a reorder by direction — they are the same gesture — so the

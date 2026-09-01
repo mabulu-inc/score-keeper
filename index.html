@@ -268,6 +268,33 @@
   .ent .v.todo { color: var(--muted); font-weight: 400; font-size: 13px; }
   .ent.open { color: var(--accent); font-weight: 600; }
 
+  /* --- farkle: the dice on the table, and the ones taken off it --- */
+  /* A face is drawn rather than typed: the Unicode dice come out of the system
+     font small and muddy at the size a thumb wants, and a game about dice
+     cannot have dice you squint at. Nine places on a 3 × 3, pips in some. */
+  .die { display: inline-grid; grid-template-columns: repeat(3, 1fr);
+         grid-template-rows: repeat(3, 1fr); width: 30px; height: 30px;
+         vertical-align: middle; }
+  .die i { width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+           align-self: center; justify-self: center; }
+  .die.sm { width: 21px; height: 21px; padding: 1px;
+            border: 1px solid currentColor; border-radius: 5px; opacity: .8; }
+  .die.sm i { width: 4px; height: 4px; }
+
+  .dice { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .dice button { padding: 9px 0; line-height: 1; }
+  .kept { display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+          min-height: 52px; margin-top: 10px; padding: 5px 6px;
+          border: 1px dashed var(--line); border-radius: 10px; }
+  .kept button { padding: 6px 11px; line-height: 1; }
+  .kept button.dead { border-color: var(--danger); color: var(--danger); }
+  .kept .none { color: var(--muted); font-size: 12px; padding: 0 6px; }
+  .risk { padding: 2px 2px 14px; }
+  .risk div + div { margin-top: 9px; }
+  .risk b, .tot .ex b { color: var(--text); font-weight: 600; }
+  .bad { color: var(--danger); }
+  .gridfit { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+
   /* --- hand log --- */
   table.log { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
   table.log th { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
@@ -308,6 +335,9 @@ const RULES = {
   game: 'Bid Euchre',
   tricks: 6,
   target: 40,
+  unit: 'hands',
+  logLabel: 'Hands',
+  home: 'four players, two teams, first to 40.',
   bids: [
     { v: 3,  label: '3',              short: '3' },
     { v: 4,  label: '4',              short: '4' },
@@ -371,6 +401,22 @@ const FLIP7 = {
   numbers: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   adders: [2, 4, 6, 8, 10],
 
+  /* Everyone plays for themselves, so there are no seats to fill — only an
+     order, and the words each screen needs for it. */
+  solo: true,
+  unit: 'hands',
+  logLabel: 'Hands',
+  home: 'everyone for themselves, first to 200.',
+  first: 'deals first',
+  turnCue: 'deals this hand',
+  orderNote: 'Drag anyone by the ⠿ handle to match how you are sitting round the table. ' +
+             'The deal starts at the top and works down, then round again.',
+  blurb() {
+    return 'First to <b>' + FLIP7.target + '</b>. At the end of each hand you tap the cards a ' +
+           'player is holding and the score does itself — seven different numbers is <b>+' +
+           FLIP7.bonus + '</b>.';
+  },
+
   /* The tally already shows the arithmetic, so this covers what it leaves out:
      the action cards, which are on the table but score nothing. */
   rules: [
@@ -397,7 +443,110 @@ const FLIP7 = {
 };
 
 const flipped = e => !e.bust && e.nums.length >= FLIP7.hit;
-const KINDS   = { euchre: RULES, flip7: FLIP7 };
+
+/* ==========================================================================
+   RULES — Farkle. Six dice, one player at a time, and a turn that lasts
+   exactly as long as the nerve holds. The app never sees a roll: it sees the
+   dice a player took out of one, which is the only part of it that scores.
+   ========================================================================== */
+const COUNT = ['', 'a', 'two', 'three', 'four', 'five', 'six'];
+const said  = (k, f) => COUNT[k] + ' ' + f + (k > 1 ? 's' : '');
+
+// Which of the nine places on a face carry a pip, and the face drawn from it.
+const PIPS = [[], [5], [1, 9], [1, 5, 9], [1, 3, 7, 9], [1, 3, 5, 7, 9], [1, 3, 4, 6, 7, 9]];
+const die = (f, cls) => '<span class="die' + (cls ? ' ' + cls : '') + '">' +
+  PIPS[f].map(n => '<i style="grid-area:' + Math.ceil(n / 3) + '/' + ((n - 1) % 3 + 1) +
+    '"></i>').join('') + '</span>';
+const whole = (what, pts) => ({ pts, parts: [what + ' · ' + fmt(pts)], dead: [] });
+
+const FARKLE = {
+  game: 'Farkle',
+  target: 10000,
+  min: 2,
+  dice: 6,
+
+  solo: true,
+  unit: 'turns',
+  logLabel: 'Rounds',
+  home: 'six dice, push your luck, first past 10,000.',
+  first: 'rolls first',
+  turnCue: 'to roll',
+  orderNote: 'Drag anyone by the ⠿ handle to match how you are sitting round the table. ' +
+             'Play starts at the top and works down, then round again.',
+  blurb() {
+    return 'First past <b>' + fmt(FARKLE.target) + '</b>, and everyone else gets one more turn ' +
+           'to beat it. Tap the dice a player sets aside and the score does itself.';
+  },
+
+  /* Four alike and up are worth a flat amount whatever the number, which is
+     the printed rule and the one most tables play. Indexed by how many. */
+  alike: [0, 0, 0, 0, 1000, 2000, 3000],
+
+  /* How often a roll of n dice has nothing scoring in it at all:
+     4/6, 16/36, 60/216, 204/1296, 600/7776, 1080/46656. Six dice almost never
+     farkle, which is what makes hot dice feel free when they are not. */
+  odds: [0, .667, .444, .278, .157, .077, .023],
+
+  rules: [
+    ['Goal',      'First past 10,000. Anyone who has had fewer turns gets one more, and the ' +
+                  'highest score at the end of that round wins.'],
+    ['A turn',    'Roll all six. Take out at least one die that scores, then either roll what ' +
+                  'is left or bank the lot.'],
+    ['Farkle',    'A roll with nothing scoring in it. The turn ends and everything on the ' +
+                  'table goes with it, however much that was.'],
+    ['1s and 5s', 'Every 1 is 100 and every 5 is 50. On its own, nothing else scores at all.'],
+    ['Three alike', 'Three of a number score its face × 100, and three 1s score 1000.'],
+    ['Four or more', 'Four alike are 1000, five are 2000 and six are 3000 — whatever the ' +
+                  'number, and so four 1s are worth no more than three of them.'],
+    ['All six',   'A run of 1 to 6 is 1500. Three pairs are 1500. Two triplets are 2500.'],
+    ['Taking out', 'Every die you take out has to score, and a combination only counts within ' +
+                  'the one roll it came out of.'],
+    ['Hot dice',  'Take out all six and you roll all six again, keeping everything you have. ' +
+                  'A turn ends only when it is banked or farkled.']
+  ],
+
+  /* Passing the target does not end it. Everyone behind in the order has a
+     turn in hand, and a turn at Farkle is worth thousands. */
+  ready: g => g.hands.length % g.players.length === 0,
+
+  /* What the dice taken out of one roll are worth, in the words the table
+     would use, and which of them are not pulling their weight. Never more
+     than six, because a combination cannot reach across a roll. */
+  score(dice) {
+    const c = [0, 0, 0, 0, 0, 0, 0];
+    for (const d of dice) c[d]++;
+    const faces = [1, 2, 3, 4, 5, 6];
+
+    // The three hands that need all six dice, each of them worth more than
+    // the same dice counted one combination at a time.
+    if (dice.length === FARKLE.dice) {
+      if (faces.every(f => c[f] === 1))               return whole('a run of 1 to 6', 1500);
+      if (faces.filter(f => c[f] === 2).length === 3) return whole('three pairs', 1500);
+      if (faces.filter(f => c[f] === 3).length === 2) return whole('two triplets', 2500);
+    }
+
+    let pts = 0;
+    const parts = [], dead = [];
+    for (const f of faces) {
+      const k = c[f];
+      if (!k) continue;
+      if (k >= 3) {
+        const v = k > 3 ? FARKLE.alike[k] : f === 1 ? 1000 : f * 100;
+        pts += v;
+        parts.push(said(k, f) + ' · ' + fmt(v));
+      } else if (f === 1 || f === 5) {
+        const v = k * (f === 1 ? 100 : 50);
+        pts += v;
+        parts.push(said(k, f) + ' · ' + fmt(v));
+      } else {
+        for (let i = 0; i < k; i++) dead.push(f);     // kept, and worth nothing
+      }
+    }
+    return { pts, parts, dead };
+  }
+};
+
+const KINDS   = { euchre: RULES, flip7: FLIP7, farkle: FARKLE };
 
 /* A game nobody wrote up is not a finished game. This refuses to start rather
    than shipping a menu that explains one game and throws on the other, so the
@@ -408,6 +557,11 @@ for (const k in KINDS) {
 const kindOf  = g => g.kind || 'euchre';    // games saved before Flip 7 are euchre
 const rulesOf = g => KINDS[kindOf(g)];
 const isF7    = g => kindOf(g) === 'flip7';
+const isFk    = g => kindOf(g) === 'farkle';
+
+// Everyone for themselves: a list of players and a running total each, rather
+// than four chairs and two partnerships. Both of the newer games are like this.
+const solo = g => !!rulesOf(g).solo;
 
 /* ==========================================================================
    BUILD — which copy of the app is actually running.
@@ -417,7 +571,7 @@ const isF7    = g => kindOf(g) === 'flip7';
    page says which build it is, and says so louder when the worker has a
    newer one waiting.
    ========================================================================== */
-const BUILD = 'v30';                       // bump together with CACHE in sw.js
+const BUILD = 'v31';                       // bump together with CACHE in sw.js
 
 /* A worker that has installed but not activated leaves both caches in place,
    and that pair is exactly the state worth reporting — so take the newest.
@@ -479,6 +633,7 @@ let rulesKind  = null;       // game whose rules are showing, when it is not the
 let confirmLeave = false;    // back was pressed with nowhere left to go
 let showScores = false;      // the running totals, which are not on show by default
 let editSeating = false;     // the seating order, open for changing
+let showRisk   = false;      // what rolling on would put at risk, asked for
 let away       = false;      // stepped out of a game in progress without ending it
 
 const nameOf = id => (S.roster.find(p => p.id === id) || {}).name || '?';
@@ -489,7 +644,9 @@ const nameOf = id => (S.roster.find(p => p.id === id) || {}).name || '?';
 const active = () => S.roster.filter(p => !p.hidden);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-const fmt = n => (n < 0 ? '\u2212' : '') + Math.abs(n);          // U+2212, not a hyphen
+// U+2212 for the minus, and thousands grouped — Farkle counts to five digits.
+const fmt = n => (n < 0 ? '\u2212' : '') +
+                 String(Math.abs(n)).replace(/\B(?=(\d{3})+$)/g, ',');
 const delta = n => (n > 0 ? '+' : '') + fmt(n);
 
 /* ==========================================================================
@@ -525,15 +682,18 @@ function everyone(g) {
   return seen;
 }
 
-const scores = g => isF7(g) ? f7Totals(g) : totals(g);
+const scores = g => solo(g) ? f7Totals(g) : totals(g);
 
 /* Either game is won by whoever is ahead once the target is passed, not by
    whoever passed it first — one hand can carry two of them over at once, and
    level at the top is played on rather than split. */
 function finish(g) {
+  const R = rulesOf(g);
   const s = scores(g);
   const best = Math.max(...s);
-  if (best < rulesOf(g).target || s.filter(x => x === best).length > 1) return false;
+  if (best < R.target || s.filter(x => x === best).length > 1) return false;
+  // Farkle gives the rest of the round a chance to answer it.
+  if (R.ready && !R.ready(g)) return false;
   g.done = true;
   g.winner = s.indexOf(best);
   g.finished = new Date().toISOString();
@@ -605,8 +765,8 @@ const ACT = {
 
   /* ---- setting the table ---- */
   newGame(d) {
-    const kind = d.kind === 'flip7' ? 'flip7' : 'euchre';
-    S.setup = kind === 'flip7'
+    const kind = KINDS[d.kind] ? d.kind : 'euchre';
+    S.setup = KINDS[kind].solo
       ? { kind, players: [] }
       : { kind, seats: [null, null, null, null], first: null };
     done();
@@ -654,10 +814,9 @@ const ACT = {
   cancelSetup() { S.setup = null; done(); },
 
   start() {
-    const st = S.setup;
-    const f7 = st.kind === 'flip7';
-    const ids = f7 ? st.players : st.seats;
-    if (f7 ? ids.length < FLIP7.min : (ids.some(s => !s) || st.first === null)) return;
+    const st = S.setup, R = KINDS[st.kind];
+    const ids = R.solo ? st.players : st.seats;
+    if (R.solo ? ids.length < R.min : (ids.some(s => !s) || st.first === null)) return;
     // Players float to the front of the roster as they are used.
     for (const id of [...ids].reverse()) {
       const i = S.roster.findIndex(p => p.id === id);
@@ -665,14 +824,17 @@ const ACT = {
     }
     const base = { id: uid('g'), kind: st.kind, started: new Date().toISOString(),
                    hands: [], done: false, winner: null };
-    S.game = f7
+    S.game = st.kind === 'flip7'
       ? Object.assign(base, { players: ids.slice(), entry: ids.map(() => null), open: null })
+      : st.kind === 'farkle'
+      ? Object.assign(base, { players: ids.slice(), turn: { rolls: [], keep: [] } })
       : Object.assign(base, { seats: ids.slice(), firstDealer: st.first,
                               phase: null, bidding: null, pending: null });
     S.undo = [];
     S.setup = null;
     away = false;
-    if (!f7) startBidding(S.game);
+    showRisk = false;
+    if (!R.solo) startBidding(S.game);
     done();
   },
 
@@ -764,6 +926,41 @@ const ACT = {
     done();
   },
 
+  /* ---- a turn at Farkle ---- */
+
+  /* The dice go by one at a time and come back the same way: tapping one that
+     has been taken out puts it back on the table. Nothing about a roll is
+     committed until the turn rolls on, banks or farkles. */
+  keepDie(d) {
+    if (turnFk(S.game).left > 0) S.game.turn.keep.push(+d.f);
+    done();
+  },
+
+  dropDie(d) { S.game.turn.keep.splice(+d.i, 1); done(); },
+
+  /* Rolling on is the one thing in a turn that cannot be tapped back — the
+     dice have left the table. So it is what Undo reaches for. */
+  rollOn() {
+    const g = S.game, u = turnFk(g);
+    if (!u.ok) return;
+    push('the last roll');
+    g.turn.rolls.push(g.turn.keep);
+    g.turn.keep = [];
+    done();
+  },
+
+  bank() {
+    const u = turnFk(S.game);
+    if (u.ok) endTurn(S.game, u.pts);
+  },
+
+  farkled() { endTurn(S.game, 0); },
+
+  /* Asked, not shown. What is on the table and how likely the next roll is to
+     take it is the whole decision, and having it in front of you the whole
+     time plays the dice for you. */
+  risk() { showRisk = !showRisk; done(); },
+
   undo() {
     const prev = S.undo.pop();
     if (!prev) return;
@@ -787,15 +984,16 @@ const ACT = {
      a place in the list, so neither of these disturbs the game behind them. */
   sitDown(d) {
     const g = S.game;
-    if (g.players.indexOf(d.id) < 0) { g.players.push(d.id); g.entry.push(null); }
+    if (g.players.indexOf(d.id) < 0) { g.players.push(d.id); if (g.entry) g.entry.push(null); }
     done();
   },
 
   standUp(d) {
     const g = S.game;
     const i = g.players.indexOf(d.id);
-    if (i < 0 || g.players.length <= FLIP7.min) return;
+    if (i < 0 || g.players.length <= rulesOf(g).min) return;
     g.players.splice(i, 1);
+    if (!g.entry) { done(); return; }
     g.entry.splice(i, 1);
     if (g.open === i) g.open = null;
     else if (g.open > i) g.open--;
@@ -807,9 +1005,9 @@ const ACT = {
     const g = d.id ? S.history.find(h => h.id === d.id) : S.game;
     if (!g) return;
     // Same players, and the deal moves on one place from where it finished.
-    if (isF7(g)) {
+    if (solo(g)) {
       const k = g.hands.length % g.players.length;
-      S.setup = { kind: 'flip7', players: g.players.slice(k).concat(g.players.slice(0, k)) };
+      S.setup = { kind: kindOf(g), players: g.players.slice(k).concat(g.players.slice(0, k)) };
     } else {
       const last = dealerFor(g, Math.max(0, g.hands.length - 1));
       S.setup = { kind: 'euchre', seats: g.seats.slice(), first: (last + 1) % 4 };
@@ -829,12 +1027,12 @@ const ACT = {
    either in the game or not. Where they go once they are in differs. */
 function inGame(id) {
   const st = S.setup;
-  return st.kind === 'flip7' ? st.players.includes(id) : st.seats.includes(id);
+  return KINDS[st.kind].solo ? st.players.includes(id) : st.seats.includes(id);
 }
 
 function pick(id) {
   const st = S.setup;
-  if (st.kind === 'flip7') {
+  if (KINDS[st.kind].solo) {
     if (!st.players.includes(id)) st.players.push(id);
     return;
   }
@@ -845,7 +1043,7 @@ function pick(id) {
 
 function unpick(id) {
   const st = S.setup;
-  if (st.kind === 'flip7') st.players = st.players.filter(p => p !== id);
+  if (KINDS[st.kind].solo) st.players = st.players.filter(p => p !== id);
   else st.seats = st.seats.map(s => s === id ? null : s);
 }
 
@@ -997,14 +1195,15 @@ function midHTML(g) {
 }
 
 function render(keepFocus) {
-  const f7 = S.setup ? S.setup.kind === 'flip7' : S.game && isF7(S.game);
+  const kind = S.setup ? S.setup.kind : S.game ? kindOf(S.game) : null;
+  const one  = kind && KINDS[kind].solo;             // everyone for themselves
   menuBtn.textContent = '☰ Menu';
   menuBtn.className   = 'menubtn' + (menuOn || menuTab ? ' open' : '');
 
   const wasAt = seatsBefore();   // where each player sat before this render
   const view = menuTab            ? viewSection()
-             : S.setup            ? (f7 ? viewSetup7() : viewSetup())
-             : S.game && !away    ? (f7 ? viewGame7() : viewGame())
+             : S.setup            ? (one ? viewSetupSolo() : viewSetup())
+             : S.game && !away    ? (one ? viewGameSolo() : viewGame())
                                   : viewHome();
   root.innerHTML = view + (menuOn ? menuPanel() : '');
   slideSeats(wasAt);
@@ -1037,13 +1236,16 @@ function viewHome() {
            '. Starting a new game discards it.</div></div>';
   }
 
-  h += '<div class="card"><div class="label">New game</div><div class="row">' +
-          '<button class="primary" data-act="newGame" data-kind="euchre">Bid euchre</button>' +
-          '<button class="primary" data-act="newGame" data-kind="flip7">Flip 7</button>' +
+  // Both of these are the list of games written out, so a game added at the
+  // desk turns up on the home screen without anybody remembering to put it there.
+  const kinds = Object.keys(KINDS);
+
+  h += '<div class="card"><div class="label">New game</div><div class="gridfit">' +
+          kinds.map(k => '<button class="primary clip" style="font-size:14px;padding:14px 4px" ' +
+            'data-act="newGame" data-kind="' + k + '">' + KINDS[k].game + '</button>').join('') +
         '</div></div>' +
        '<div class="card center muted tiny" style="padding:22px 16px;line-height:1.7">' +
-         '<b>Bid euchre</b> — four players, two teams, first to ' + RULES.target + '.<br>' +
-         '<b>Flip 7</b> — everyone for themselves, first to ' + FLIP7.target + '.' +
+         kinds.map(k => '<b>' + KINDS[k].game + '</b> — ' + KINDS[k].home).join('<br>') +
          (S.history.length ? '<br>Everyone’s record is under <b>☰ Menu</b>.' : '') +
        '</div>';
   return h;
@@ -1233,11 +1435,11 @@ function viewOver(g, s) {
 // board. Finished games were always recorded in full; now they can be read.
 function viewLog(g) {
   if (!g.hands.length) return '';
-  return '<div class="card"><details open><summary><div class="label">Hands</div></summary>' +
-         logTable(g) + '</details></div>';
+  return '<div class="card"><details open><summary><div class="label">' +
+         rulesOf(g).logLabel + '</div></summary>' + logTable(g) + '</details></div>';
 }
 
-const logTable = g => isF7(g) ? log7(g) : logEuchre(g);
+const logTable = g => isFk(g) ? logFarkle(g) : isF7(g) ? log7(g) : logEuchre(g);
 
 function logEuchre(g) {
   const run = [0, 0];
@@ -1268,37 +1470,34 @@ const cell = (d, t, run) =>
    player has stood or gone bust, and all that is left to do is read the cards
    off the table.
    ========================================================================== */
-function viewSetup7() {
-  const st = S.setup, n = st.players.length;
+function viewSetupSolo() {
+  const st = S.setup, R = KINDS[st.kind], n = st.players.length;
 
-  const foot = n >= FLIP7.min ? '' :
+  const foot = n >= R.min ? '' :
     '<div class="tiny muted gap">Tap two or more players. Everyone plays for themselves — ' +
     'add as many as are round the table.</div>';
 
   // The order used to be a line of prose you could read and not change. It is
   // the same list the game itself uses, so it can be put right before you start
   // rather than after.
-  const seating = n < FLIP7.min ? '' :
+  const seating = n < R.min ? '' :
     '<div class="card"><div class="label">Seating &nbsp;·&nbsp; ' + n + ' playing</div>' +
-      orderRows(st.players, i => i === 0 ? 'deals first' : '', 'toggleRoster', false) +
-      '<div class="tiny muted gap">Drag anyone by the ⠿ handle to match how you are sitting ' +
-      'round the table. The deal starts at the top and works down, then round again.</div></div>';
+      orderRows(st.players, i => i === 0 ? R.first : '', 'toggleRoster', false) +
+      '<div class="tiny muted gap">' + R.orderNote + '</div></div>';
 
   return setupBanner() + rosterCard(foot) + seating +
-    '<div class="card center tiny muted" style="line-height:1.7">First to <b>' + FLIP7.target +
-      '</b>. At the end of each hand you tap the cards a player is holding and the score does ' +
-      'itself — seven different numbers is <b>+' + FLIP7.bonus + '</b>.</div>' +
+    '<div class="card center tiny muted" style="line-height:1.7">' + R.blurb() + '</div>' +
     '<div class="row act">' +
       '<button data-act="cancelSetup" style="flex:1">Cancel</button>' +
       '<button class="primary" style="flex:2" data-act="start"' +
-        (n >= FLIP7.min ? '' : ' disabled') + '>Start game</button></div>';
+        (n >= R.min ? '' : ' disabled') + '>Start game</button></div>';
 }
 
 /* The running totals are not on show while a hand is being played. Knowing
    exactly where everyone stands changes how the cards get played, and the
    question at the table during a hand is whose turn it is, not who is winning.
    A finished game is a different matter: then it is the whole point. */
-function viewGame7() {
+function viewGameSolo() {
   const g = S.game, s = f7Totals(g);
   const open = showScores || g.done;
 
@@ -1321,7 +1520,8 @@ function viewGame7() {
   }
   h += '</div>';
 
-  return h + (g.done ? viewOver7(g, s) : viewHand7(g, s)) + viewLog(g) + footer(g, !g.done);
+  const hand = g.done ? viewOver7(g, s) : isFk(g) ? viewTurnFk(g, s) : viewHand7(g, s);
+  return h + hand + viewLog(g) + footer(g, !g.done);
 }
 
 function standings(g, s) {
@@ -1334,7 +1534,7 @@ function standings(g, s) {
         '" data-p="' + r.id + '">' +
         '<div class="nm">' + esc(nameOf(r.id)) + '</div>' +
         '<div class="bar"><i style="width:' +
-          Math.max(0, Math.min(100, r.pts / FLIP7.target * 100)) + '%"></i></div>' +
+          Math.max(0, Math.min(100, r.pts / rulesOf(g).target * 100)) + '%"></i></div>' +
         '<div class="pts">' + fmt(r.pts) + '</div></div>').join('');
 }
 
@@ -1397,8 +1597,8 @@ function orderRows(ids, cue, act, locked) {
 function seatingRows(g, deals) {
   const spare = active().filter(p => g.players.indexOf(p.id) < 0);
 
-  let h = orderRows(g.players, i => i === deals ? 'deals this hand' : '',
-                    'standUp', g.players.length <= FLIP7.min);
+  let h = orderRows(g.players, i => i === deals ? rulesOf(g).turnCue : '',
+                    'standUp', g.players.length <= rulesOf(g).min);
 
   if (spare.length) {
     h += '<div class="chips gap">' + spare.map(p =>
@@ -1407,8 +1607,8 @@ function seatingRows(g, deals) {
   }
 
   return h + '<div class="tiny muted gap">Drag anyone by the ⠿ handle to put the order right. ' +
-         '✕ takes a player out of the game and keeps every hand they have already scored; ' +
-         'anyone added starts from the next hand.</div>';
+         '✕ takes a player out of the game and keeps everything they have already scored; ' +
+         'anyone added joins in on the next time round.</div>';
 }
 
 /* Tap what is in front of them. Every card is a toggle, so a mis-tap is
@@ -1463,7 +1663,7 @@ function viewOver7(g, s) {
          '<div class="big sm t0">' + esc(nameOf(g.players[w])) + ' wins</div>' +
          '<div class="muted tiny gap">' + fmt(s[w]) + ' to ' +
            fmt(Math.max(...s.filter((_, i) => i !== w))) + ' in ' + g.hands.length +
-         ' hands</div><button class="primary gap" style="width:100%;margin-top:14px" ' +
+         ' ' + rulesOf(g).unit + '</div><button class="primary gap" style="width:100%;margin-top:14px" ' +
          'data-act="again">Play again</button></div>';
 }
 
@@ -1488,6 +1688,193 @@ function log7(g) {
   return '<div style="overflow-x:auto"><table class="log"><thead><tr><th>#</th>' +
          all.map(id => '<th class="r"><span class="who">' + esc(nameOf(id)) + '</span></th>').join('') +
          '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+/* ==========================================================================
+   FARKLE — one player at a time, and everything the app does happens inside
+   a turn. The dice themselves are on the table, not on the screen: what it
+   is told is which of them were taken out for scoring, roll by roll, and
+   from that it knows what the turn is worth and what rolling on would cost.
+   ========================================================================== */
+
+/* Where a turn stands, worked out once and read by everything: what is out
+   on the felt, what it is worth, and how many dice are still live — six
+   again the moment all six have been taken out, which is what hot dice are.
+   `ok` is the rule that every die taken out has to score. */
+function turnFk(g) {
+  const t = g.turn;
+  const set = FARKLE.score(t.keep);
+  const kept = t.rolls.reduce((a, r) => a + r.length, 0);
+  const hot = kept > 0 && kept % FARKLE.dice === 0;
+  const banked = t.rolls.reduce((a, r) => a + FARKLE.score(r).pts, 0);
+
+  return { t, set, kept, hot, banked,
+           pts:  banked + set.pts,
+           left: (hot ? FARKLE.dice : FARKLE.dice - kept % FARKLE.dice) - t.keep.length,
+           ok:   t.keep.length > 0 && set.dead.length === 0 };
+}
+
+/* A turn is a hand of one. It is recorded against the player who took it, in
+   the same shape a hand of Flip 7 uses, so the totals, the board, the log and
+   people coming and going all read it without being told about dice. */
+function endTurn(g, pts) {
+  const id = g.players[g.hands.length % g.players.length];
+  // Named after the turn rather than the player: the log below says whose it
+  // was, and a long name turns the button into three lines of wrapped text.
+  push('the last turn');
+  g.hands.push({ who: id, pts: { [id]: pts }, farkle: !pts });
+  g.turn = { rolls: [], keep: [] };
+  showRisk = false;
+  finish(g);
+  done();
+}
+
+function viewTurnFk(g, s) {
+  const u = turnFk(g), t = u.t;
+  const at = g.hands.length % g.players.length;
+  const id = g.players[at];
+  const round = Math.floor(g.hands.length / g.players.length) + 1;
+  const best = Math.max(...s);
+
+  let h = '<div class="banner">' + FARKLE.game + ' &nbsp;·&nbsp; Round <b>' + round +
+          '</b> &nbsp;·&nbsp; <b>' + esc(nameOf(id)) + '</b> to roll' +
+          // Say why the game did not just end, rather than leaving the table guessing.
+          (best < FARKLE.target ? ''
+            : s.filter(x => x === best).length > 1
+              ? '<br>Level on <b>' + fmt(best) + '</b> — play on until someone leads'
+              : '<br><b>' + esc(nameOf(g.players[s.indexOf(best)])) + '</b> is past ' +
+                fmt(FARKLE.target) + ' — one turn each left to beat it') +
+          '</div>';
+
+  h += '<div class="card"><div class="label">' + esc(nameOf(id)) + '\u2019s turn</div>';
+
+  // What earlier rolls in this turn already put by, so the number below can be
+  // read back against the dice actually sitting on the table.
+  if (t.rolls.length) {
+    h += '<div class="tiny muted" style="margin-bottom:12px;line-height:2.1">' +
+         t.rolls.map(r => r.map(d => die(d, 'sm')).join(' ') + ' <b>' +
+           fmt(FARKLE.score(r).pts) + '</b>').join(' &nbsp;&nbsp; ') + '</div>';
+  }
+
+  h += '<div class="tiny muted" style="margin-bottom:8px">' +
+       // Nothing left on the table means all six again, whichever pass this is.
+       (u.left > 0
+         ? '<b>' + COUNT[u.left] + ' ' + (u.left === 1 ? 'die' : 'dice') + '</b> still on the ' +
+           'table — tap each one taken out for scoring.'
+         : 'All six taken out — <b>hot dice</b>. Roll all six again keeping this, or bank it.') +
+       '</div>';
+
+  h += '<div class="dice">';
+  for (let f = 1; f <= 6; f++) {
+    h += '<button data-act="keepDie" data-f="' + f + '"' + (u.left > 0 ? '' : ' disabled') +
+         '>' + die(f) + '</button>';
+  }
+  h += '</div>';
+
+  // The dice taken out of the roll in front of you. Tapping one puts it back,
+  // so a mis-tap costs a tap; a die that scores nothing is marked as such
+  // rather than quietly counted as nought.
+  h += '<div class="kept">' + (t.keep.length
+        ? t.keep.map((d, i) =>
+            '<button class="' + (u.set.dead.includes(d) ? 'dead' : 'on') + '" ' +
+            'data-act="dropDie" data-i="' + i + '">' + die(d) + '</button>').join('')
+        : '<span class="none">Nothing taken out of this roll yet</span>') + '</div>';
+
+  h += '<div class="tot"><div class="n' + (u.pts ? '' : ' zero') + '">' + fmt(u.pts) + '</div>' +
+       '<div class="ex">' + fkExplain(u) + '</div></div>';
+
+  h += '<button class="sect" data-act="risk"><span>If you roll again</span>' +
+         '<span class="cue">' + (showRisk ? 'hide' : 'show') + '</span></button>' +
+       (showRisk ? riskFk(g, id, u, s[at]) : '') +
+       '</div>';
+
+  /* One decision at a time. Nothing has been taken out of the roll, so the
+     only thing that can have happened is a farkle; something has, so the only
+     things left are to roll on or to stop.
+
+     Undo keeps the other company, and says what it takes back — which is
+     where it is wanted, since the turn it undoes is the one that ended just
+     above this button. With dice in hand there is nothing for it to do that
+     tapping one of them back does not, and three buttons that say what they
+     mean do not fit across a phone. */
+  return h + '<div class="act row">' +
+    (t.keep.length
+      ? '<button data-act="rollOn"' + (u.ok ? '' : ' disabled') + '>Roll again</button>' +
+        '<button class="primary" style="flex:2" data-act="bank"' + (u.ok ? '' : ' disabled') +
+          '>Bank ' + fmt(u.pts) + '</button>'
+      : (S.undo.length ? undoButton() : '') +
+        '<button style="flex:2" data-act="farkled">Farkled' +
+        (u.pts ? ' &nbsp;' + fmt(-u.pts) : '') + '</button>') +
+    '</div>';
+}
+
+// Show the sum being done, not just its answer — and name the dice that are
+// doing nothing, because keeping one is the mistake the rules do not allow.
+function fkExplain(u) {
+  if (u.set.dead.length) {
+    const d = u.set.dead.filter((f, i) => u.set.dead.indexOf(f) === i);
+    return '<span class="bad">The ' + d.slice(0, -1).join(', ') +
+           (d.length > 1 ? ' and ' : '') + d[d.length - 1] +
+           (d.length > 1 ? ' score' : ' scores') + ' nothing — every die you take out ' +
+           'has to count. Tap it to put it back.</span>';
+  }
+  const parts = u.set.parts.slice();
+  if (!parts.length) return u.banked ? 'Set by so far — now tap what came out of this roll'
+                                     : 'Tap each die taken out for scoring';
+  return (u.banked ? fmt(u.banked) + ' set by, then ' : '') + parts.join(' + ');
+}
+
+/* The only question at a Farkle table, and the reason the game is played at
+   all: what is on the table, and how likely the next roll is to take it. */
+function riskFk(g, id, u, was) {
+  const next = u.left > 0 ? u.left : FARKLE.dice;      // all six out means all six again
+  const odds = FARKLE.odds[next];
+  const now = was + u.pts;
+  const short = FARKLE.target - now;
+
+  return '<div class="risk tiny muted">' +
+    '<div>' + (u.pts
+      ? 'Roll again and <b>' + fmt(u.pts) + '</b> goes back on the table. A farkle takes all of it.'
+      : 'Nothing on the table yet — the first roll of a turn costs nothing.') + '</div>' +
+    '<div>Rolling <b>' + next + '</b> ' + (next === 1 ? 'die' : 'dice') + ': about <b>' +
+      Math.round(odds * 100) + '%</b> of rolls come up with nothing at all' +
+      // One in three or worse reads better as a share than as odds.
+      (odds < .4 ? ', or one roll in ' + Math.round(1 / odds) : '') + '.</div>' +
+    '<div>Bank instead and ' + esc(nameOf(id)) + ' is on <b>' + fmt(now) + '</b>' +
+      (short > 0 ? ', ' + fmt(short) + ' short of ' + fmt(FARKLE.target)
+                 : ' — past ' + fmt(FARKLE.target)) + '.</div>' +
+    '</div>';
+}
+
+/* One row a round, everyone's turn side by side. Turns are taken in order, so
+   a round is over the moment it comes back to somebody who has already been —
+   which stays true when people join or leave part way through. */
+function logFarkle(g) {
+  const all = everyone(g);
+  const run = {}, rows = [];
+  let row = null;
+
+  for (const h of g.hands) {
+    if (!row || (h.who in row)) rows.push(row = {});
+    run[h.who] = (run[h.who] || 0) + (h.pts[h.who] || 0);
+    row[h.who] = { pts: h.pts[h.who] || 0, farkle: h.farkle, run: run[h.who] };
+  }
+
+  const body = rows.map((r, i) =>
+    '<tr><td class="muted">' + (i + 1) + '</td>' +
+    all.map(id => {
+      const c = r[id];
+      // A round played before somebody joined, or after they left, is blank
+      // for them rather than nought — they were not there to score nothing.
+      if (!c) return '<td class="r muted">·</td>';
+      return '<td class="r"><span class="' + (c.farkle ? 'bad' : '') + '">' +
+             (c.farkle ? 'farkle' : fmt(c.pts)) + '</span><br>' +
+             '<span class="run">' + fmt(c.run) + '</span></td>';
+    }).join('') + '</tr>').join('');
+
+  return '<div style="overflow-x:auto"><table class="log"><thead><tr><th>#</th>' +
+         all.map(id => '<th class="r"><span class="who">' + esc(nameOf(id)) + '</span></th>').join('') +
+         '</tr></thead><tbody>' + body + '</tbody></table></div>';
 }
 
 /* ==========================================================================
@@ -1590,9 +1977,9 @@ function rulesBody() {
    ========================================================================== */
 
 // Euchre is won by a partnership, so a win counts for both partners.
-const wonBy = g => isF7(g) ? [g.players[g.winner]]
+const wonBy = g => solo(g) ? [g.players[g.winner]]
                            : [g.seats[g.winner], g.seats[g.winner + 2]];
-const playedBy = g => isF7(g) ? g.players : g.seats;
+const playedBy = g => solo(g) ? g.players : g.seats;
 
 function record() {
   const rec = {};
@@ -1670,15 +2057,16 @@ function gamesHTML() {
   for (const g of S.history.slice(0, 40)) {
     const s = scores(g), w = g.winner;
     const runner = Math.max(...s.filter((_, i) => i !== w));
-    const won  = isF7(g) ? nameOf(g.players[w]) : teamName(g, w);
-    const rest = isF7(g) ? g.players.filter((_, i) => i !== w).map(nameOf).join(', ')
+    const won  = solo(g) ? nameOf(g.players[w]) : teamName(g, w);
+    const rest = solo(g) ? g.players.filter((_, i) => i !== w).map(nameOf).join(', ')
                          : teamName(g, 1 - w);
     h += '<div class="hist">' +
            '<button class="txt" data-act="openGame" data-id="' + g.id + '">' +
-             '<div class="win"><span class="dot t' + (isF7(g) ? 0 : w) + '"></span> <b>' + esc(won) +
+             '<div class="win"><span class="dot t' + (solo(g) ? 0 : w) + '"></span> <b>' + esc(won) +
                '</b> <span class="muted">' + fmt(s[w]) + ' to ' + fmt(runner) + '</span></div>' +
              '<div class="tiny muted clip">' + rulesOf(g).game + ' · v ' + esc(rest) + ' · ' +
-               fmtDate(g.finished || g.started) + ' · ' + g.hands.length + ' hands</div>' +
+               fmtDate(g.finished || g.started) + ' · ' + g.hands.length + ' ' +
+               rulesOf(g).unit + '</div>' +
            '</button>' +
            '<button data-act="again" data-id="' + g.id + '">Play again</button>' +
            '<button class="ghost" data-act="delHist" data-id="' + g.id + '">✕</button></div>' +
@@ -1727,9 +2115,12 @@ function applyOrder(from, to) {
     map.forEach((now, old) => { S.setup.players[now] = was[old]; });
     return;
   }
-  const g = S.game, players = g.players.slice(), entry = g.entry.slice();
-  map.forEach((now, old) => { g.players[now] = players[old]; g.entry[now] = entry[old]; });
-  if (g.open !== null) g.open = map[g.open];
+  const g = S.game, players = g.players.slice(), entry = g.entry && g.entry.slice();
+  map.forEach((now, old) => {
+    g.players[now] = players[old];
+    if (entry) g.entry[now] = entry[old];
+  });
+  if (entry && g.open !== null) g.open = map[g.open];
 }
 
 /* Where everyone ends up if the player being carried is let go over chair `to`.
